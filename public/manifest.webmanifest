@@ -1,0 +1,17 @@
+{
+  "name": "TemkaLauncher — портал в миры Temka",
+  "short_name": "TemkaLauncher",
+  "description": "Единый лаунчер миров Temka: TemkaWorld и Fantazia RP, профиль, XP и обновления.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "lang": "ru",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "maskable" }
+  ]
+}

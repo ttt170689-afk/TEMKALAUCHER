@@ -1,0 +1,38 @@
+{
+  "applicationId": "com.temka.launcher",
+  "version": "1.2.0",
+  "defaultMode": "window",
+  "port": 0,
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": false,
+  "tokenSecurity": "none",
+  "logging": { "enabled": false },
+  "documentRoot": "/dist/",
+  "modes": {
+    "window": {
+      "title": "TemkaLauncher",
+      "width": 1380,
+      "height": 880,
+      "minWidth": 1024,
+      "minHeight": 640,
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "icon": "/build/icon.png",
+      "enableInspector": false,
+      "borderless": false,
+      "resizable": true,
+      "maximize": false,
+      "hidden": false,
+      "exitProcessOnClose": true
+    }
+  },
+  "cli": {
+    "binaryName": "TemkaLauncher",
+    "resourcesPath": "/dist/",
+    "extensionsPath": "/extensions/",
+    "clientLibrary": "/dist/neutralino.js",
+    "binaryVersion": "5.6.0",
+    "clientVersion": "5.7.0"
+  }
+}

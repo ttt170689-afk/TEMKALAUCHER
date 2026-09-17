@@ -1,0 +1,50 @@
+appId: com.temka.launcher
+productName: TemkaLauncher
+copyright: Copyright © 2026 Temka Studio
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**
+  - electron/**
+  - build/icon.png
+  - version.json
+  - package.json
+
+# dist и version.json лежат ВНЕ asar — лаунчер может обновлять сам себя
+asarUnpack:
+  - "dist/**"
+  - "version.json"
+
+# манифест и пакеты обновлений кладутся рядом с приложением
+extraResources:
+  - from: updates
+    to: updates
+    filter:
+      - "**/*"
+  - from: updater-source.txt
+    to: updater-source.txt
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: TemkaLauncher
+  artifactName: TemkaLauncher-Setup.${ext}
+
+portable:
+  artifactName: TemkaLauncher-Portable.exe

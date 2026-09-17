@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>TemkaLauncher Updater</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg0:#0b0e14; --bg1:#10141d; --bg2:#161b27; --bg3:#1c2231;
+    --line:rgba(233,237,245,.08); --line2:rgba(233,237,245,.15);
+    --tx:#e9edf5; --tx2:#9aa3b5; --tx3:#626c80;
+    --accent:#ff7a2f; --accent2:#3ddcc2; --danger:#ff5d5d;
+  }
+  * { box-sizing:border-box; margin:0; }
+  html,body { height:100%; }
+  body {
+    background:var(--bg0); color:var(--tx);
+    font-family:"Manrope",sans-serif; overflow:hidden; user-select:none;
+  }
+  .frame { position:relative; height:100%; display:flex; flex-direction:column; }
+  .bg-grid {
+    position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(233,237,245,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(233,237,245,.03) 1px,transparent 1px);
+    background-size:38px 38px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 20%,#000 10%,transparent 80%);
+    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 20%,#000 10%,transparent 80%);
+  }
+  .bg-glow { position:absolute; width:420px; height:420px; border-radius:50%; pointer-events:none; top:-160px; left:-120px;
+    background:radial-gradient(circle,rgba(255,122,47,.14),transparent 62%); animation:drift 12s ease-in-out infinite; }
+  .bg-glow2 { position:absolute; width:380px; height:380px; border-radius:50%; pointer-events:none; bottom:-160px; right:-120px;
+    background:radial-gradient(circle,rgba(61,220,194,.10),transparent 62%); animation:drift 14s ease-in-out infinite reverse; }
+  @keyframes drift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(26px,18px)} }
+  .scan { position:absolute; left:0; right:0; top:0; height:110px; pointer-events:none;
+    background:linear-gradient(180deg,transparent,rgba(255,122,47,.05) 50%,transparent);
+    animation:scan 8s linear infinite; }
+  @keyframes scan { from{transform:translateY(-120px)} to{transform:translateY(110vh)} }
+
+  .titlebar { -webkit-app-region:drag; display:flex; align-items:center; gap:10px; padding:14px 16px 10px; position:relative; z-index:2; }
+  .titlebar .t { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--tx3); }
+  .close { -webkit-app-region:no-drag; margin-left:auto; width:30px; height:30px; border-radius:8px; border:1px solid var(--line2);
+    background:transparent; color:var(--tx2); cursor:pointer; font-size:14px; line-height:1; transition:.2s; }
+  .close:hover { color:#fff; border-color:var(--danger); background:rgba(255,93,93,.12); transform:rotate(90deg); }
+
+  .content { position:relative; z-index:2; flex:1; display:flex; flex-direction:column; padding:6px 26px 22px; }
+
+  .head { display:flex; align-items:center; gap:16px; }
+  .hex { position:relative; width:64px; height:64px; flex:none; display:flex; align-items:center; justify-content:center; }
+  .hex svg.ring { position:absolute; inset:-8px; animation:spin 9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .hex .logo { filter:drop-shadow(0 6px 18px rgba(255,122,47,.45)); }
+  h1 { font-family:"Unbounded",sans-serif; font-size:21px; font-weight:800; letter-spacing:.04em; }
+  h1 em { font-style:normal; color:var(--accent); }
+  .sub { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.26em; text-transform:uppercase; color:var(--tx3); margin-top:5px; }
+
+  .versions { margin-top:20px; display:flex; align-items:center; gap:14px; padding:14px 16px; border:1px solid var(--line);
+    border-radius:14px; background:linear-gradient(180deg,var(--bg2),var(--bg1)); }
+  .ver { text-align:center; flex:1; }
+  .ver .l { font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--tx3); }
+  .ver .v { font-family:"Unbounded",sans-serif; font-size:20px; font-weight:800; margin-top:4px; }
+  .ver.new .v { color:var(--accent2); text-shadow:0 0 18px rgba(61,220,194,.5); }
+  .arrow { color:var(--accent); font-size:20px; animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.45; transform:translateX(0)} 50%{opacity:1; transform:translateX(4px)} }
+
+  .notes { margin-top:16px; flex:1; min-height:0; overflow-y:auto; padding-right:6px; }
+  .notes::-webkit-scrollbar { width:8px; } .notes::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:99px; }
+  .notes h3 { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+  .notes li { list-style:none; display:flex; gap:10px; align-items:flex-start; padding:7px 0; font-size:12.5px; font-weight:600; color:var(--tx2);
+    opacity:0; transform:translateX(-10px); animation:item .45s cubic-bezier(.22,1,.36,1) forwards; }
+  .notes li::before { content:"◆"; color:var(--accent); font-size:9px; margin-top:3px; }
+  @keyframes item { to { opacity:1; transform:none; } }
+
+  .status { margin-top:14px; font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:700; color:var(--tx2); min-height:16px; letter-spacing:.04em; }
+  .status b { color:var(--accent); }
+  .bar { margin-top:8px; height:12px; border-radius:99px; background:var(--bg2); border:1px solid var(--line2); overflow:hidden; position:relative; }
+  .bar .fill { height:100%; width:0%; border-radius:99px; position:relative;
+    background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--accent2)));
+    box-shadow:0 0 16px rgba(255,122,47,.55); transition:width .18s linear; }
+  .bar .fill::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(105deg,transparent 32%,rgba(255,255,255,.4) 50%,transparent 68%);
+    background-size:200% 100%; animation:sheen 1.6s linear infinite; }
+  @keyframes sheen { from{background-position:200% 0} to{background-position:-200% 0} }
+
+  .actions { margin-top:16px; display:flex; gap:10px; }
+  button.primary, button.ghost { font-family:"Manrope",sans-serif; font-weight:800; font-size:13.5px; border-radius:11px; padding:13px 20px; cursor:pointer; transition:.2s; border:1px solid transparent; }
+  button.primary { flex:1; background:var(--accent); color:#140c05; box-shadow:0 8px 26px -8px rgba(255,122,47,.7); position:relative; overflow:hidden; }
+  button.primary::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%); transform:translateX(-130%); transition:transform .55s; }
+  button.primary:hover::after { transform:translateX(130%); }
+  button.primary:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  button.primary:active { transform:scale(.98); }
+  button.primary:disabled { filter:grayscale(.5) brightness(.75); cursor:default; box-shadow:none; }
+  button.ghost { background:color-mix(in srgb,var(--bg3) 60%,transparent); border-color:var(--line2); color:var(--tx); }
+  button.ghost:hover { border-color:color-mix(in srgb,var(--accent) 55%,var(--line2)); transform:translateY(-1px); }
+
+  .ok-badge { display:none; margin-top:14px; align-items:center; justify-content:center; gap:10px; padding:12px; border-radius:12px;
+    border:1px solid rgba(61,220,194,.35); background:rgba(61,220,194,.08); color:var(--accent2); font-weight:800; font-size:13px; }
+  .ok-badge svg path { stroke-dasharray:48; stroke-dashoffset:48; animation:draw .5s .1s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset:0; } }
+
+  .foot { position:relative; z-index:2; display:flex; justify-content:space-between; padding:10px 18px; border-top:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--tx3); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="bg-grid"></div><div class="bg-glow"></div><div class="bg-glow2"></div><div class="scan"></div>
+
+  <div class="titlebar">
+    <svg width="16" height="16" viewBox="0 0 32 32"><path d="M16 2 28 9v14L16 30 4 23V9z" fill="#ff7a2f"/><path d="M10 12h12v3.4h-4.2V23h-3.6v-7.6H10z" fill="#0b0e14"/></svg>
+    <span class="t">TemkaLauncher · центр обновлений</span>
+    <button class="close" id="btnClose" title="Закрыть">✕</button>
+  </div>
+
+  <div class="content">
+    <div class="head">
+      <div class="hex">
+        <svg class="ring" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="46" stroke="#ff7a2f" stroke-width="2" stroke-linecap="round" stroke-dasharray="40 26 12 26 58 180" opacity=".8"/>
+          <circle cx="50" cy="50" r="46" stroke="#3ddcc2" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="10 278" stroke-dashoffset="-130" opacity=".7"/>
+        </svg>
+        <svg class="logo" width="44" height="44" viewBox="0 0 32 32"><path d="M16 2 28 9v14L16 30 4 23V9z" fill="#ff7a2f"/><path d="M10 12h12v3.4h-4.2V23h-3.6v-7.6H10z" fill="#0b0e14"/></svg>
+      </div>
+      <div>
+        <h1 id="title">ПРОВЕРКА<em>…</em></h1>
+        <p class="sub" id="subtitle">подключение к серверам temka</p>
+      </div>
+    </div>
+
+    <div class="versions">
+      <div class="ver"><div class="l">установлена</div><div class="v" id="vCur">—</div></div>
+      <div class="arrow">➜</div>
+      <div class="ver new"><div class="l">доступна</div><div class="v" id="vNew">—</div></div>
+    </div>
+
+    <div class="notes" id="notesWrap" hidden>
+      <h3>Что нового</h3>
+      <ul id="notes"></ul>
+    </div>
+
+    <div class="ok-badge" id="okBadge">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      Обновлено! Лаунчер готов к запуску
+    </div>
+
+    <div>
+      <div class="status" id="status">Инициализация…</div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="ghost" id="btnLater">Позже</button>
+      <button class="primary" id="btnMain" disabled>Проверяем…</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>© 2026 temka studio</span>
+    <span id="targetPath"></span>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const api = window.temkaUpd;
+  const el = {
+    title: $("title"), sub: $("subtitle"), vCur: $("vCur"), vNew: $("vNew"),
+    notes: $("notes"), notesWrap: $("notesWrap"), status: $("status"),
+    fill: $("fill"), main: $("btnMain"), later: $("btnLater"), ok: $("okBadge"),
+  };
+  let mode = "checking";
+
+  const fmtSize = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " МБ" : Math.round(b / 1024) + " КБ");
+
+  const setTitle = (html, sub) => { el.title.innerHTML = html; if (sub) el.sub.textContent = sub; };
+  const btn = (text, enabled) => { el.main.textContent = text; el.main.disabled = !enabled; };
+
+  el.main.onclick = () => {
+    if (mode === "available") { mode = "downloading"; api.install(); }
+    else if (mode === "done") { api.launch(); }
+  };
+  el.later.onclick = () => (mode === "done" ? api.launch() : api.close());
+
+  const scramble = (node, text) => {
+    const chars = "ТЕМКАWRLD#/<>+=*";
+    let f = 0;
+    const id = setInterval(() => {
+      f++;
+      const solved = Math.floor(f / 1.7);
+      if (solved >= text.length) { node.textContent = text; clearInterval(id); return; }
+      node.textContent = text.split("").map((c, i) => (c === " " ? " " : i < solved ? c : chars[Math.floor(Math.random() * chars.length)])).join("");
+    }, 26);
+  };
+
+  api.onState((s) => {
+    if (s.current) el.vCur.textContent = "v" + s.current;
+    switch (s.phase) {
+      case "checking":
+        setTitle('ПРОВЕРКА<em>…</em>', "подключение к серверам temka");
+        el.status.innerHTML = "Запрашиваем манифест обновлений…";
+        el.fill.style.width = "18%";
+        btn("Проверяем…", false);
+        break;
+      case "up-to-date":
+        mode = "latest";
+        el.vNew.textContent = "v" + s.latest;
+        setTitle('У ВАС СВЕЖАЯ <em>ВЕРСИЯ</em>', "обновлений не найдено");
+        el.status.innerHTML = `TemkaLauncher <b>v${s.latest}</b> — самая новая. Можно играть спокойно.`;
+        el.fill.style.width = "100%";
+        el.later.textContent = "Закрыть";
+        btn("Обновлений нет", false);
+        break;
+      case "available":
+        mode = "available";
+        el.vNew.textContent = "v" + s.latest;
+        setTitle('НАЙДЕНО ОБНОВЛЕНИЕ<em>!</em>', `сборка от ${s.date || "—"}`);
+        el.notesWrap.hidden = false;
+        el.notes.innerHTML = "";
+        (s.notes || []).forEach((n, i) => {
+          const li = document.createElement("li");
+          li.textContent = n;
+          li.style.animationDelay = i * 80 + "ms";
+          el.notes.appendChild(li);
+        });
+        el.status.innerHTML = "Пакет готов к установке. Нажмите, чтобы продолжить.";
+        el.fill.style.width = "8%";
+        btn("⬇ Установить обновление", true);
+        scramble(el.status, "Пакет готов к установке. Нажмите, чтобы продолжить.");
+        break;
+      case "downloading": {
+        el.fill.style.width = (s.progress || 0) + "%";
+        const extra = s.total ? ` · ${fmtSize(s.got)} / ${fmtSize(s.total)} · ${(s.speed / 1048576).toFixed(1)} МБ/с` : "";
+        el.status.innerHTML = `Скачиваем пакет… <b>${Math.round(s.progress || 0)}%</b>${extra}`;
+        btn("Скачиваем…", false);
+        break;
+      }
+      case "extracting":
+        el.fill.style.width = "100%";
+        el.status.innerHTML = "Распаковываем и заменяем файлы лаунчера…";
+        btn("Распаковка…", false);
+        break;
+      case "done":
+        mode = "done";
+        el.vCur.textContent = "v" + s.latest;
+        el.vNew.textContent = "✓";
+        setTitle('ГОТОВО<em>!</em>', "лаунчер обновлён");
+        el.status.innerHTML = `Установлена версия <b>v${s.latest}</b>. Запускаем?`;
+        el.fill.style.width = "100%";
+        el.ok.style.display = "flex";
+        el.later.textContent = "Закрыть";
+        btn("▶ Запустить TemkaLauncher", true);
+        break;
+      case "error":
+        mode = "error";
+        setTitle('ОШИБКА<em>!</em>', "обновление не удалось");
+        el.status.innerHTML = "Не получилось: " + (s.error || "неизвестная ошибка");
+        el.status.style.color = "var(--danger)";
+        el.later.textContent = "Закрыть";
+        btn("Попробовать снова", true);
+        el.main.onclick = () => { el.status.style.color = ""; mode = "checking"; api.check(); };
+        break;
+    }
+  });
+
+  api.check();
+</script>
+</body>
+</html>
