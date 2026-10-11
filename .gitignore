@@ -15,3 +15,5 @@ build/
 Thumbs.db
 
 release-files/
+
+test-results/

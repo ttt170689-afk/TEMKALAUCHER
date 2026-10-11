@@ -48,6 +48,9 @@ export default function Sidebar({ view, setView }: { view: View; setView: (v: Vi
           return (
             <button
               key={n.id}
+              aria-label={n.label}
+              title={n.label}
+              aria-current={active ? "page" : undefined}
               onClick={() => setView(n.id)}
               className={`group relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-bold transition-colors duration-200 ${
                 active ? "text-[var(--tx)]" : "text-[var(--tx2)] hover:text-[var(--tx)]"
