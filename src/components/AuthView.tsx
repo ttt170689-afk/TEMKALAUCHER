@@ -1,3 +1,4 @@
+import { USERNAME_MAX_LENGTH } from "../lib/username";
 import { useMemo, useState } from "react";
 import { useAuth, isBadName } from "../lib/auth";
 import { useProgress } from "../lib/progress";
@@ -194,7 +195,7 @@ export default function AuthView() {
             <div className="mt-5 flex flex-col gap-3.5">
               <label className="block">
                 <span className="mb-1.5 flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">
-                  Ник игрока
+                  Ник игрока · {name.length}/{USERNAME_MAX_LENGTH}
                   {name.trim().length >= 3 && (
                     <span className={bad ? "text-[var(--danger)]" : "text-[var(--accent-2)]"}>
                       {bad ? "заблокировано фильтром" : "имя доступно"}
@@ -205,7 +206,7 @@ export default function AuthView() {
                   className={`input-tl w-full px-4 py-3 text-[14px] ${bad ? "!border-[var(--danger)]" : ""}`}
                   placeholder="Temka_Игрок"
                   value={name}
-                  maxLength={16}
+                  maxLength={USERNAME_MAX_LENGTH}
                   onChange={(e) => setName(e.target.value)}
                 />
               </label>

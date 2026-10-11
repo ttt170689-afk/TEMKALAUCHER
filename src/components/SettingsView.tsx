@@ -3,7 +3,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ACCENTS, useSettings } from "../lib/settings";
 import { useToast } from "../lib/toast";
-import { usePwaInstall, isStandalone } from "../lib/pwa";
+import { usePwaInstall } from "../lib/pwa";
+import { APP_VERSION, APP_CHANNEL, runtimeMode } from "../lib/version";
 import { inDesktop, quitApp } from "../lib/neutralino";
 import { Reveal, Toggle, MaskReveal, IconCheck, IconDownload, IconSpark } from "./ui";
 
@@ -268,13 +269,13 @@ export default function SettingsView() {
               format={(v) => (v === 0 ? "без лимита" : `${v} МБ/с`)}
             />
           </Row>
-          <Row title="Проверять при запуске" desc="Сразу после входа лаунчер спросит сервер обновлений.">
+          <Row title="Автопроверка обновлений" desc="Проверка GitHub Releases при запуске; включает фоновые проверки и автозагрузку.">
             <Toggle on={s.autoUpdates} onChange={(v) => set("autoUpdates", v)} label="Проверка при запуске" />
           </Row>
           <Row title="Проверять каждые 5 минут" desc="Фоновая проверка — новое обновление найдётся само, без кнопок.">
             <Toggle on={s.periodicCheck} onChange={(v) => set("periodicCheck", v)} label="Проверка каждые 5 минут" />
           </Row>
-          <Row title="Устанавливать автоматически" desc="Нашёл обновление — сам скачал и заменил файлы. Тебе останется нажать «Перезапустить».">
+          <Row title="Скачивать автоматически" desc="Обновление скачивается в фоне. Установка — по кнопке «Перезапустить» или при выходе через трей.">
             <Toggle on={s.autoInstall} onChange={(v) => set("autoInstall", v)} label="Автоустановка" />
           </Row>
           <Row title="Закрывать лаунчер при запуске игры" desc="Освобождает память под игровой клиент.">
@@ -325,10 +326,8 @@ export default function SettingsView() {
             <div>
               <p className="font-display text-[15px] font-extrabold">TemkaLauncher</p>
               <p className="font-mono2 mt-1 text-[11.5px] font-semibold text-[var(--tx3)]">
-                версия{" "}
-                {(window as unknown as { temka?: { version?: string } }).temka?.version ?? "1.2.0"} · сборка 1247 ·
-                канал stable ·{" "}
-                {((window as unknown as { temka?: { platform?: string } }).temka?.platform ?? isStandalone() ? "app" : "web")}
+                версия {(window as unknown as { temka?: { version?: string } }).temka?.version ?? APP_VERSION} · канал{" "}
+                {APP_CHANNEL} · {runtimeMode().toLowerCase()}
               </p>
             </div>
             {(pwa.canInstall || pwa.installed) && (

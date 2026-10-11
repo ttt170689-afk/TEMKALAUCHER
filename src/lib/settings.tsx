@@ -37,7 +37,7 @@ export const DEFAULTS: Settings = {
   theme: "graphite",
   particles: true,
   particleDensity: 70,
-  customCursor: true,
+  customCursor: false,
   cursorTrail: true,
   cursorRibbon: true,
   cursorCharge: true,

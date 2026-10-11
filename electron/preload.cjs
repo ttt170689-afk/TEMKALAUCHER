@@ -25,3 +25,6 @@ contextBridge.exposeInMainWorld("temka", {
     },
   },
 });
+
+// Bridge tray actions into the existing React event listener.
+ipcRenderer.on("temka-check-updates", () => window.dispatchEvent(new Event("temka-check-updates")));

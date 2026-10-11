@@ -277,32 +277,7 @@ export function FantaziaScene({ className = "" }: { className?: string }) {
 }
 
 /* ================= универсальная поверхность арта ================= */
-export function ArtSurface({
-  game,
-  mini = false,
-  eager = false,
-  className = "",
-}: {
-  game: Game;
-  mini?: boolean;
-  eager?: boolean;
-  className?: string;
-}) {
-  // живая лента из браузерной сборки игры
-  if (game.liveUrl && !mini) {
-    return (
-      <div className={`relative overflow-hidden ${className}`}>
-        <FantaziaScene className="absolute inset-0 h-full w-full" />
-        <iframe
-          src={game.liveUrl}
-          title={`${game.title} — живая веб-сборка`}
-          loading={eager ? "eager" : "lazy"}
-          sandbox="allow-scripts allow-same-origin allow-popups"
-          className="pointer-events-none absolute inset-0 h-full w-full border-0"
-        />
-      </div>
-    );
-  }
+export function ArtSurface({ game, className = "" }: { game: Game; className?: string }) {
   return game.id === "temkaworld" ? (
     <ParkScene className={className} />
   ) : (

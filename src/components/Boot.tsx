@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../lib/settings";
+import { APP_VERSION } from "../lib/version";
 import { ScrambleText } from "./ui";
 
 const LINES = [
@@ -79,7 +80,7 @@ export default function Boot({ onDone }: { onDone: () => void }) {
         <ScrambleText text="TEMKALAUNCHER" />
       </h1>
       <p className="font-mono2 mt-2 text-[10px] font-bold uppercase tracking-[0.34em] text-[var(--tx3)]">
-        temka studio · v1.2.0
+        temka studio · v{APP_VERSION}
       </p>
 
       {/* строки загрузки */}
@@ -128,7 +129,7 @@ export default function Boot({ onDone }: { onDone: () => void }) {
         © 2026 temka studio
       </p>
       <p className="font-mono2 absolute bottom-5 right-6 text-[9.5px] font-semibold uppercase tracking-[0.24em] text-[var(--tx3)]">
-        сборка 1247 · stable
+        канал stable
       </p>
     </div>
   );

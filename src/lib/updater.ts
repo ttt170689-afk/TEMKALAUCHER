@@ -76,51 +76,36 @@ export function useAutoUpdate(auto = true) {
   const check = useCallback(async () => {
     // не дёргаем проверку, пока что-то уже качается или готово
     if (phaseRef.current === "downloading" || phaseRef.current === "extracting" || phaseRef.current === "ready") return;
+    if (phaseRef.current === "checking") return;
+    phaseRef.current = "checking";
     setPhase("checking");
     // десктоп: настоящая проверка через IPC
     const api = web();
     if (api?.update) {
-      const r = await api.update.check();
+      const r = await api.update.check().catch((error: unknown) => ({
+        ok: false, error: String(error)
+      } as Awaited<ReturnType<NonNullable<TemkaApi["update"]>["check"]>>));
       if (!r.ok) {
-        setPhase("idle");
-        return { available: false as const };
+        phaseRef.current = "error";
+        setPhase("error");
+        return { available: false as const, error: r.error || "Не удалось проверить обновления." };
       }
       if (r.available) {
         setInfo({ latest: r.latest!, current: r.current!, date: r.date, notes: r.notes || [], source: (r as { source?: string }).source });
+        setDismissed(false);
+        phaseRef.current = "available";
         setPhase("available");
         sfx.nav();
         return { available: true as const };
       }
+      phaseRef.current = "latest";
       setPhase("latest");
       return { available: false as const };
     }
-    // веб: пробуем подтянуть манифест рядом с dist (для превью)
-    try {
-      const res = await fetch("updates/manifest.json", { cache: "no-store" });
-      if (!res.ok) throw new Error();
-      const m = await res.json();
-      const current = api?.version ?? "1.2.0";
-      const pa = String(m.version).split(".").map(Number);
-      const pb = String(current).split(".").map(Number);
-      let newer = false;
-      for (let i = 0; i < 3; i++) {
-        if ((pa[i] || 0) !== (pb[i] || 0)) {
-          newer = (pa[i] || 0) > (pb[i] || 0);
-          break;
-        }
-      }
-      if (newer) {
-        const fileUrl = m.url || (m.file ? `updates/${m.file}` : undefined);
-        setInfo({ latest: m.version, current, date: m.date, notes: m.notes || [], fileUrl });
-        setPhase("available");
-        return { available: true as const };
-      }
-      setPhase("latest");
-      return { available: false as const };
-    } catch {
-      setPhase("idle");
-      return { available: false as const };
-    }
+    // Browser preview is not an installable Windows app: no simulated updates.
+    phaseRef.current = "idle";
+    setPhase("idle");
+    return { available: false as const, error: "Обновления доступны в установленной Windows-версии." };
   }, []);
 
   const install = useCallback(async () => {
@@ -128,12 +113,14 @@ export function useAutoUpdate(auto = true) {
       push("info", "Это веб-превью", "В собранном EXE лаунчер обновит себя сам — скачает, заменит файлы и перезапустится.");
       return;
     }
+    if (phaseRef.current === "downloading" || phaseRef.current === "ready") return;
+    phaseRef.current = "downloading";
     setPhase("downloading");
     setProgress(0);
-    const r = await web()!.update!.install();
+    const r = await web()!.update!.install().catch((error: unknown) => ({ ok: false, error: String(error) }));
     if (!r.ok) {
       setPhase("error");
-      push("warn", "Не удалось обновиться", "Попробуй ещё раз через минуту.");
+      push("warn", "Не удалось обновиться", r.error || "Попробуй ещё раз через минуту.");
     }
   }, [push]);
 
@@ -179,7 +166,7 @@ export function useAutoUpdate(auto = true) {
       } else if (st.phase === "done") {
         setPhase("ready");
         sfx.level();
-        push("ok", `Обновлено до v${st.latest}`, "Перезапусти лаунчер, чтобы применить изменения.");
+        push("ok", `Версия ${st.latest} скачана`, "Нажми «Перезапустить» для установки. Также обновление установится при выходе через меню трея.");
       } else if (st.phase === "error") {
         setPhase("error");
       }
@@ -196,23 +183,24 @@ export function useAutoUpdate(auto = true) {
 
   // фоновая проверка каждые 5 минут
   useEffect(() => {
-    if (!auto || !s.periodicCheck) return;
+    if (!auto || !s.autoUpdates || !s.periodicCheck) return;
     const id = window.setInterval(() => check(), 5 * 60 * 1000);
     return () => window.clearInterval(id);
-  }, [auto, s.periodicCheck, check]);
+  }, [auto, s.autoUpdates, s.periodicCheck, check]);
 
   // автоустановка: нашли обновление → через пару секунд качаем сами
   useEffect(() => {
-    if (phase !== "available" || webMode || !s.autoInstall || dismissed) return;
+    if (phase !== "available" || webMode || !s.autoUpdates || !s.autoInstall || dismissed) return;
     const t = window.setTimeout(() => {
       install();
     }, 2500);
     return () => window.clearTimeout(t);
-  }, [phase, s.autoInstall, dismissed, install]);
+  }, [phase, webMode, s.autoUpdates, s.autoInstall, dismissed, install]);
 
   useEffect(() => {
     const on = () => {
       check().then((r) => {
+        if (r && "error" in r) { push("warn", "Проверка не удалась", r.error || "Попробуй позднее."); return; }
         if (r && !r.available) push("ok", "Обновлений нет", "У тебя самая свежая версия TemkaLauncher.");
       });
     };

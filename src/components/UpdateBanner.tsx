@@ -43,7 +43,7 @@ export default function UpdateBanner() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-display text-[14px] font-extrabold">
-                  {u.phase === "ready" ? "Обновление установлено" : u.phase === "error" ? "Ошибка обновления" : `Доступно обновление v${u.info.latest}`}
+                  {u.phase === "ready" ? "Обновление скачано" : u.phase === "error" ? "Ошибка обновления" : `Доступно обновление v${u.info.latest}`}
                 </p>
                 <span className="font-mono2 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold uppercase tracking-widest" style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
                   v{u.info.current} → v{u.info.latest}
@@ -60,7 +60,7 @@ export default function UpdateBanner() {
                   : u.phase === "extracting"
                     ? "Распаковываем и заменяем файлы…"
                     : u.phase === "ready"
-                      ? "Файлы заменены. Перезапусти лаунчер, чтобы продолжить."
+                      ? "Загрузка завершена. Перезапусти лаунчер для установки."
                       : u.phase === "error"
                         ? "Не получилось. Попробуй ещё раз."
                         : u.info.notes[0]}

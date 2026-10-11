@@ -1,3 +1,4 @@
+import { USERNAME_MAX_LENGTH } from "../lib/username";
 import { useState } from "react";
 import { useAuth, TITLES, AVATAR_COLORS } from "../lib/auth";
 import { AVATAR_VARIANTS, AvatarSvg } from "./AvatarSvg";
@@ -222,9 +223,9 @@ export default function ProfileView() {
                 <MaskReveal>Ник и статус</MaskReveal>
               </h2>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Ник</span>
+                <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Ник · {nameDraft.length}/{USERNAME_MAX_LENGTH}</span>
                 <div className="flex gap-2">
-                  <input className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]" value={nameDraft} maxLength={16} onChange={(e) => setNameDraft(e.target.value)} />
+                  <input className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]" value={nameDraft} maxLength={USERNAME_MAX_LENGTH} onChange={(e) => setNameDraft(e.target.value)} />
                   <button onClick={saveName} className="btn-primary flex-none px-4 py-2.5 text-[12.5px]" disabled={nameDraft.trim() === user.username}>
                     Сохранить
                   </button>

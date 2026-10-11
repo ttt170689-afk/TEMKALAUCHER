@@ -1,3 +1,4 @@
+import { validateUsernameLength } from "./username";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -89,7 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (username: string, email: string, pass: string): Promise<string | null> => {
       const name = username.trim();
-      if (name.length < 3 || name.length > 16) return "Ник должен быть от 3 до 16 символов.";
+      const lengthError = validateUsernameLength(name);
+      if (lengthError) return lengthError;
       if (!/^[a-zа-я0-9_]+$/i.test(name)) return "Только буквы, цифры и «_» без пробелов.";
       if (isBadName(name)) return "Имя заблокировано фильтром. Система Temka такое не пропустит.";
       if (store.users.some((u) => u.username.toLowerCase() === name.toLowerCase()))
@@ -146,7 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const rename = useCallback(
     (username: string): string | null => {
       const name = username.trim();
-      if (name.length < 3 || name.length > 16) return "Ник должен быть от 3 до 16 символов.";
+      const lengthError = validateUsernameLength(name);
+      if (lengthError) return lengthError;
       if (!/^[a-zа-я0-9_]+$/i.test(name)) return "Только буквы, цифры и «_» без пробелов.";
       if (isBadName(name)) return "Имя заблокировано фильтром.";
       if (store.users.some((u) => u.id !== store.session && u.username.toLowerCase() === name.toLowerCase()))

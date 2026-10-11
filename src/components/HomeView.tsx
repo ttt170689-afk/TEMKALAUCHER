@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { GAMES, TICKER } from "../data/games";
-import { useWaitlist, WAITLIST_BASE } from "../lib/waitlist";
+import { useWaitlist } from "../lib/waitlist";
+import { useProgress } from "../lib/progress";
+import { useSettings } from "../lib/settings";
+import { APP_VERSION, APP_CHANNEL, runtimeMode } from "../lib/version";
 import { ArtSurface, ParkScene } from "./Art";
 import {
   Reveal,
@@ -31,21 +34,21 @@ function ProgressBar({ value, color }: { value: number; color?: string }) {
   );
 }
 
-/* живой пульс разработки: тикающее время с последней сборки */
-function BuildPulse() {
-  const [twSec, setTwSec] = useState(2547);
-  const [fzSec, setFzSec] = useState(11284);
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setTwSec((v) => v + 1);
-      setFzSec((v) => v + 1);
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  const fmt = (s: number) =>
-    s < 3600
-      ? `${Math.floor(s / 60)} мин ${String(s % 60).padStart(2, "0")} с`
-      : `${Math.floor(s / 3600)} ч ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} мин`;
+/* честный статус лаунчера — только реальные данные */
+function SystemStatus() {
+  const { s } = useSettings();
+  const { entries } = useWaitlist();
+  const mode = runtimeMode();
+  const rows = [
+    { label: "Версия лаунчера", value: `v${APP_VERSION} · ${APP_CHANNEL}`, dot: "var(--accent)" },
+    { label: "Режим работы", value: mode === "Web" ? "браузер" : mode, dot: "var(--accent-2)" },
+    {
+      label: "Обновления",
+      value: s.periodicCheck ? "автопроверка каждые 5 минут" : "вручную из настроек",
+      dot: s.periodicCheck ? "var(--accent-2)" : "var(--tx3)",
+    },
+    { label: "Лист ожидания", value: `${entries.length} записей на этом устройстве`, dot: "var(--accent)" },
+  ];
 
   return (
     <div className="panel relative overflow-hidden" style={{ borderRadius: 16 }}>
@@ -56,34 +59,22 @@ function BuildPulse() {
       <div className="flex items-center gap-2.5 border-b border-[var(--line)] px-6 py-4">
         <span className="pulse-dot h-2 w-2 rounded-full bg-accent" />
         <p className="font-mono2 text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">
-          пульс разработки · live
+          статус лаунчера
         </p>
         <span className="font-mono2 ml-auto hidden text-[10.5px] font-semibold text-[var(--tx3)] sm:block">
-          CI/CD Temka Studio
+          реальные данные · без симуляций
         </span>
       </div>
-      <div className="grid divide-y divide-[var(--line)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-        <div className="flex items-center gap-4 px-6 py-5">
-          <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: "var(--accent)", boxShadow: "0 0 10px var(--accent)" }} />
-          <div className="min-w-0">
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--tx3)]">Сборка TemkaWorld</p>
-            <p className="font-mono2 mt-0.5 text-[15px] font-bold tabular-nums text-[var(--tx)]">{fmt(twSec)} назад</p>
+      <div className="grid divide-y divide-[var(--line)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+        {rows.map((r, i) => (
+          <div key={r.label} className={`flex items-center gap-4 px-6 py-5 ${i >= 2 ? "sm:border-t sm:border-[var(--line)] lg:border-t-0" : ""}`}>
+            <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: r.dot, boxShadow: `0 0 10px ${r.dot}` }} />
+            <div className="min-w-0">
+              <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--tx3)]">{r.label}</p>
+              <p className="font-mono2 mt-0.5 truncate text-[14px] font-bold text-[var(--tx)]">{r.value}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4 px-6 py-5">
-          <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: "var(--accent-2)", boxShadow: "0 0 10px var(--accent-2)" }} />
-          <div className="min-w-0">
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--tx3)]">Сборка Fantazia RP</p>
-            <p className="font-mono2 mt-0.5 text-[15px] font-bold tabular-nums text-[var(--tx)]">{fmt(fzSec)} назад</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 px-6 py-5">
-          <span className="pulse-dot h-2.5 w-2.5 flex-none rounded-full bg-[var(--accent-2)]" />
-          <div className="min-w-0">
-            <p className="text-[12px] font-extrabold uppercase tracking-wide text-[var(--tx3)]">Аптайм серверов</p>
-            <p className="font-mono2 mt-0.5 text-[15px] font-bold tabular-nums text-[var(--accent-2)]">99,98%</p>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -117,6 +108,7 @@ export default function HomeView({
   const [modal, setModal] = useState(false);
   const paraRef = useRef<HTMLDivElement>(null);
   const { entries } = useWaitlist();
+  const { level, xp, ach } = useProgress();
   const tw = GAMES[0];
   const fz = GAMES[1];
 
@@ -178,9 +170,9 @@ export default function HomeView({
             <div className="mt-7 flex flex-wrap items-center gap-2.5">
               <span className="chip flex items-center gap-2 px-3 py-1.5 text-[11.5px] font-bold text-[var(--accent-2)]">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                Серверы онлайн
+                лист ожидания открыт
               </span>
-              <span className="chip font-mono2 px-3 py-1.5 text-[11px] font-semibold text-[var(--tx2)]">v1.2.0 · сборка 1247</span>
+              <span className="chip font-mono2 px-3 py-1.5 text-[11px] font-semibold text-[var(--tx2)]">v{APP_VERSION}</span>
               <span className="chip font-mono2 px-3 py-1.5 text-[11px] font-semibold text-[var(--tx2)]">
                 2 игры · {GAMES.reduce((n, g) => n + g.dlcs.length, 0) || "DLC скоро"}
               </span>
@@ -202,11 +194,11 @@ export default function HomeView({
               style={{ transform: "rotate(-3deg) translate3d(calc(var(--px, 0) * -16px), calc(var(--py, 0) * -12px), 0)" }}
               aria-label="Открыть Fantazia RP"
             >
-              <ArtSurface game={fz} mini className="absolute inset-0 transition-transform duration-700 group-hover:scale-105" />
+              <ArtSurface game={fz} className="absolute inset-0 transition-transform duration-700 group-hover:scale-105" />
               <span className="absolute inset-0 bg-gradient-to-t from-[rgba(6,8,12,0.9)] via-transparent to-transparent" />
               <span className="absolute left-4 top-3.5 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.72)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent-2)] backdrop-blur-sm">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                веб-сборка live
+                играбельно в браузере
               </span>
               <span className="font-display absolute bottom-3 left-4 text-[15px] font-extrabold">{fz.title}</span>
               <span className="font-mono2 absolute bottom-3.5 right-4 text-[10px] font-bold text-[var(--accent-2)]">{fz.progress}%</span>
@@ -254,10 +246,10 @@ export default function HomeView({
       <Reveal className="mt-10">
         <div className="panel grid grid-cols-2 divide-x divide-[var(--line)] md:grid-cols-4" style={{ borderRadius: 16 }}>
           {[
-            { v: WAITLIST_BASE + entries.length, l: "игроков в листе ожидания" },
-            { v: 3214, l: "участников в Discord" },
-            { v: 1247, l: "сборок скомпилировано" },
-            { v: 4512, l: "чашек кофе выпито" },
+            { v: entries.length, l: "записей в листе ожидания" },
+            { v: level, l: "уровень игрока" },
+            { v: xp, l: "всего опыта заработано" },
+            { v: ach.length, l: "достижений открыто" },
           ].map((s, i) => (
             <div key={s.l} className={`px-6 py-6 ${i >= 2 ? "border-t border-[var(--line)] md:border-t-0" : ""}`}>
               <p className="font-display text-[26px] font-extrabold tracking-tight">
@@ -269,9 +261,9 @@ export default function HomeView({
         </div>
       </Reveal>
 
-      {/* ===== пульс разработки ===== */}
+      {/* ===== статус лаунчера ===== */}
       <Reveal className="mt-12">
-        <BuildPulse />
+        <SystemStatus />
       </Reveal>
 
       {/* ===== roadmaps ===== */}

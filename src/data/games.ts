@@ -17,10 +17,9 @@ export interface Milestone {
   state: "done" | "active" | "locked";
 }
 
-/** kind: placeholder — арт нарисует разработчик; live — живая лента из веб-сборки; launch — открытие веб-демо */
+/** placeholder — слот под будущий арт разработчика */
 export interface Shot {
-  kind: "placeholder" | "live" | "launch";
-  src?: string;
+  kind: "placeholder";
   label: string;
 }
 
@@ -53,8 +52,8 @@ export const GAMES: Game[] = [
     description:
       "Всё начинается с воспоминаний о детстве — но идиллию разрывает сирена: на грандиозный парк аттракционов Temkaworld нападает жуткий Демон. Лидер Артём успевает вытолкнуть тебя за гермозатвор с таинственной запиской. Спустя два года ты находишь тайный лаз на заброшке и возвращаешься в заколоченный парк: туториал Никиты, портал в мультиплеер, лавка скинов Серёги и первое задание — Золотой Ключ, рухнувшая стена и бешеная погоня от Гигантского Монстра. А под парком ждёт Секретный Бункер… но защитная система пустит только игрока 10 уровня.",
     genre: "Сюжетный хоррор · Кооп",
-    version: "0.6.2-alpha",
-    size: "6,6 ГБ",
+    version: "альфа",
+    size: "уточняется",
     developer: "Temka_Игрок · инди-разработка",
     engine: "Собственный движок",
     statusLabel: "В разработке",
@@ -97,8 +96,8 @@ export const GAMES: Game[] = [
     description:
       "MMORPG, где история пишется игроками. Выбирайте фракцию, стройте карьеру от бродяги до лорда, участвуйте в судах, торговле и войнах гильдий. Мастера игры проводят живые ивенты, а экономика полностью находится в руках сообщества.",
     genre: "MMORPG · Ролеплей",
-    version: "0.3.8-prealpha",
-    size: "12 ГБ",
+    version: "пре-альфа",
+    size: "уточняется",
     developer: "Temka Studio × Fantazia Team",
     engine: "Unreal Engine 5",
     statusLabel: "В разработке",
@@ -106,8 +105,8 @@ export const GAMES: Game[] = [
     accent: "#3ddcc2",
     liveUrl: FANTAZIA_LIVE_URL,
     screenshots: [
-      { kind: "live", src: FANTAZIA_LIVE_URL, label: "Живой кадр из игры — браузерная сборка" },
-      { kind: "launch", src: FANTAZIA_LIVE_URL, label: "Веб-демо во весь экран" },
+      { kind: "placeholder", label: "Таверна «Хвост дракона»" },
+      { kind: "placeholder", label: "Рейд на каменного голема" },
     ],
     features: [
       "Живая экономика, управляемая игроками",
@@ -144,14 +143,17 @@ export const DLC_STATUS: Record<DlcStatus, { label: string; cls: string }> = {
 
 
 
+/* Готовность считается честно — по реально закрытым главам дорожной карты */
+for (const g of GAMES) {
+  g.progress = Math.round((g.roadmap.filter((m) => m.state === "done").length / g.roadmap.length) * 100);
+}
+
 export const TICKER = [
-  "СБОРКА #1247 СКОМПИЛИРОВАНА",
-  "TEMKAWORLD: ГОТОВНОСТЬ 62%",
-  "FANTAZIA RP: ГОТОВНОСТЬ 41%",
-  "СЕРВЕРЫ АВТОРИЗАЦИИ: ОНЛАЙН",
+  "TEMKAWORLD: ПРОЛОГ И ВОЗВРАЩЕНИЕ ГОТОВЫ",
   "FANTAZIA RP: ВЕБ-СБОРКА LIVE",
   "TEMKAWORLD: БУНКЕР — С 10 УРОВНЯ",
   "ЛАВКА СЕРЁГИ: СКИНЫ УЖЕ СКОРО",
-  "НОВЫЙ DEVLOG #14 УЖЕ В СЕТИ",
+  "ОБНОВЛЕНИЯ ПРИХОДЯТ АВТОМАТИЧЕСКИ",
   "ЛИСТ ОЖИДАНИЯ ОТКРЫТ",
+  "НОВЫЙ DEVLOG УЖЕ В СЕТИ",
 ];

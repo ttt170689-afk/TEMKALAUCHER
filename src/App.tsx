@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { SettingsProvider, useSettings } from "./lib/settings";
 import { ToastProvider } from "./lib/toast";
 import { ProgressProvider, useProgress } from "./lib/progress";
+import { APP_VERSION, runtimeMode } from "./lib/version";
 import { useAppLock } from "./lib/appLock";
 import { initNeutralino } from "./lib/neutralino";
 import { setSoundEnabled, sfx } from "./lib/sound";
@@ -38,32 +39,20 @@ const VIEW_TITLES: Record<View, { title: string; sub: string }> = {
 const ALL_VIEWS: View[] = ["home", "news", "library", "profile", "settings"];
 
 function StatusBar() {
-  const [ping, setPing] = useState(23);
   const [clock, setClock] = useState(() => new Date());
-
   useEffect(() => {
-    const p = window.setInterval(() => setPing(17 + Math.round(Math.random() * 22)), 2600);
     const c = window.setInterval(() => setClock(new Date()), 1000);
-    return () => {
-      window.clearInterval(p);
-      window.clearInterval(c);
-    };
+    return () => window.clearInterval(c);
   }, []);
 
   return (
     <footer className="relative z-10 flex h-8 flex-none items-center gap-4 border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--bg1)_88%,transparent)] px-4 backdrop-blur-md">
-      <span className="flex items-center gap-2 text-[11px] font-bold text-[var(--tx2)]">
-        <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)] shadow-[0_0_8px_var(--accent-2)]" />
-        Серверы: онлайн
-      </span>
-      <span className="font-mono2 text-[10.5px] font-semibold text-[var(--tx3)]">
-        пинг <span className={ping < 30 ? "text-[var(--accent-2)]" : "text-[#ffd28a]"}>{ping} мс</span>
-      </span>
       <span className="font-mono2 hidden text-[10.5px] font-semibold tracking-[0.14em] text-[var(--tx3)] md:block">
         ОБЕ ИГРЫ В РАЗРАБОТКЕ — ЗАПУСК ОТКРОЕТСЯ С РЕЛИЗОМ
       </span>
+      <span className="font-mono2 text-[10.5px] font-semibold text-[var(--tx3)]">{runtimeMode()}</span>
       <span className="ml-auto flex items-center gap-4">
-        <span className="font-mono2 text-[10.5px] font-bold text-[var(--tx3)]">v1.2.0</span>
+        <span className="font-mono2 text-[10.5px] font-bold text-[var(--tx3)]">v{APP_VERSION}</span>
         <span className="font-mono2 text-[11px] font-bold tabular-nums text-[var(--tx2)]">
           {clock.toLocaleTimeString("ru-RU")}
         </span>
@@ -293,11 +282,12 @@ function Shell() {
           </main>
         </div>
       </div>
-          <UpdateBanner />
           <UpdateOverlay />
         </>
       )}
 
+      
+      <UpdateBanner />
       <StatusBar />
     </div>
   );

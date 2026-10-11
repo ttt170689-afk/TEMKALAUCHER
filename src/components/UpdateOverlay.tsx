@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
+import { APP_VERSION } from "../lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { ScrambleText } from "./ui";
-
-const FALLBACK_NOTES = [
-  "Экран «Что нового» после каждого обновления",
-  "Автообновления с GitHub — проверка каждые 5 минут",
-  "Лаунчер обновляет себя сам: без архивов и ручных замен",
-  "Сворачивание в трей и нормальное закрытие",
-  "Звук клавиатуры, конфетти за уровень и магнитные кнопки",
-];
 
 /* Кинематографичная встреча после обновления */
 export default function UpdateOverlay() {
@@ -18,7 +11,7 @@ export default function UpdateOverlay() {
 
   useEffect(() => {
     const w = window as unknown as { temka?: { version?: string } };
-    const current = w.temka?.version || "1.3.0";
+    const current = w.temka?.version || APP_VERSION;
     let seen = "";
     try {
       seen = localStorage.getItem("temka-seen-version") || "";
@@ -36,10 +29,7 @@ export default function UpdateOverlay() {
     if (seen === current) return;
 
     setVersion(current);
-    fetch("updates/manifest.json", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((m) => setNotes(m.notes?.length ? m.notes : FALLBACK_NOTES))
-      .catch(() => setNotes(FALLBACK_NOTES));
+    setNotes(["Обновление TemkaLauncher установлено."]);
     setOpen(true);
     const t = window.setTimeout(() => window.dispatchEvent(new CustomEvent("temka-levelup")), 650);
     return () => window.clearTimeout(t);
@@ -47,7 +37,7 @@ export default function UpdateOverlay() {
 
   const close = () => {
     try {
-      localStorage.setItem("temka-seen-version", version || "1.3.0");
+      localStorage.setItem("temka-seen-version", version || APP_VERSION);
     } catch {
       /* noop */
     }
@@ -107,7 +97,7 @@ export default function UpdateOverlay() {
               <ScrambleText text="ОБНОВЛЕНО" />
             </h2>
             <p className="font-mono2 relative mt-2 inline-block rounded-full px-4 py-1.5 text-[13px] font-extrabold" style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)" }}>
-              v{version || "1.3.0"}
+              v{version || APP_VERSION}
             </p>
 
             <ul className="relative mx-auto mt-6 flex max-w-[40ch] flex-col gap-2.5 text-left">

@@ -8,7 +8,6 @@ export interface WaitEntry {
 }
 
 const KEY = "temka-waitlist-v1";
-export const WAITLIST_BASE = 12480; // игроков уже в листе ожидания
 
 function load(): WaitEntry[] {
   try {
@@ -60,12 +59,11 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
     [entries, persist]
   );
 
-  // «позиция» в очереди: базовое число + локальные записи + хэш от игры для стабильности
+  // честная позиция: порядковый номер записи на этом устройстве
   const position = useCallback(
     (game: string) => {
       const idx = entries.findIndex((e) => e.game === game);
-      const salt = game.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 97;
-      return WAITLIST_BASE + 1 + salt + Math.max(0, idx);
+      return Math.max(1, idx + 1);
     },
     [entries]
   );

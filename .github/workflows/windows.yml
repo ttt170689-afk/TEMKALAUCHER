@@ -1,0 +1,84 @@
+name: Windows EXE and Release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish this version to GitHub Releases (version must be new)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      # Publisher can import ZIPs with additional frontend dependencies.
+      - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:smoke
+      - name: Build installer and update metadata
+        run: npx electron-builder --config electron-builder.cjs --win nsis --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: npm run verify-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TemkaLauncher-Windows-x64
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
+            package.json
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: TemkaLauncher-Windows-x64
+          path: artifact
+      - name: Publish complete release (never overwrite a released version)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./artifact/package.json').version")
+          TAG="v$VERSION"
+          if [[ "$REF" == refs/tags/* && "$REF" != "refs/tags/$TAG" ]]; then
+            echo "Tag and package.json version do not match"; exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists. Bump package.json version; do not overwrite updates."; exit 1
+          fi
+          gh release create "$TAG" artifact/release/*.exe artifact/release/*.exe.blockmap artifact/release/latest.yml \
+            --draft --target "$COMMIT" --title "TemkaLauncher $VERSION" \
+            --notes "Windows 10/11 x64. Install the Setup EXE. Existing installations download updates automatically."
+          gh release edit "$TAG" --draft=false --latest

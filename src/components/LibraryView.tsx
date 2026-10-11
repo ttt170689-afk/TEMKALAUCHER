@@ -4,12 +4,11 @@ import { DLC_STATUS, GAMES } from "../data/games";
 import type { Game } from "../data/games";
 import { useToast } from "../lib/toast";
 import { useProgress } from "../lib/progress";
-import { ArtSurface, ShotPlaceholder, FantaziaScene } from "./Art";
+import { ArtSurface, ShotPlaceholder } from "./Art";
 import {
   Reveal,
   ScrambleText,
   PreRegisterModal,
-  Modal,
   DevChip,
   DlcIcon,
   MaskReveal,
@@ -19,7 +18,6 @@ import {
   IconClock,
   IconCheck,
   IconSearch,
-  IconX,
 } from "./ui";
 
 function GameCard({ game, active, onSelect, delay }: { game: Game; active: boolean; onSelect: () => void; delay: number }) {
@@ -36,7 +34,7 @@ function GameCard({ game, active, onSelect, delay }: { game: Game; active: boole
         style={{ background: "linear-gradient(180deg, var(--bg2), var(--bg1))" }}
       >
         <div className="relative h-32 overflow-hidden">
-          <ArtSurface game={game} mini className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.07]" />
+          <ArtSurface game={game} className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.07]" />
           <span className="absolute inset-0 bg-gradient-to-t from-[var(--bg1)] via-[rgba(10,13,19,0.25)] to-transparent" />
           {/* in-dev watermark */}
           <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.72)] px-2.5 py-1 text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-[var(--tx2)] backdrop-blur-sm">
@@ -79,12 +77,12 @@ export default function LibraryView({
   const { level, into, grant } = useProgress();
   const [shake, setShake] = useState(false);
   const [modal, setModal] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
   const [reqTab, setReqTab] = useState<"min" | "rec">("min");
 
-  const openDemo = () => {
-    setDemoOpen(true);
-    grant("web-demo", 25, "Запуск веб-демо Fantazia RP");
+  const openBrowser = () => {
+    if (!shownGame.liveUrl) return;
+    window.open(shownGame.liveUrl, "_blank", "noopener");
+    grant("browser-play", 15, "Запуск Fantazia RP в браузере");
   };
 
   const q = query.trim().toLowerCase();
@@ -167,7 +165,7 @@ export default function LibraryView({
                     className="absolute -inset-3 transition-transform duration-200 ease-out"
                     style={{ transform: "translate3d(calc(var(--bx, 0) * -12px), calc(var(--by, 0) * -9px), 0)" }}
                   >
-                    <ArtSurface game={shownGame} eager className="h-full w-full" />
+                    <ArtSurface game={shownGame} className="h-full w-full" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,8,12,0.95)] via-[rgba(6,8,12,0.25)] to-transparent" />
                   <div className="absolute left-5 top-5 flex flex-wrap items-center gap-2">
@@ -176,7 +174,7 @@ export default function LibraryView({
                     {shownGame.liveUrl && (
                       <span className="chip flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--accent-2)]">
                         <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                        живой эфир сборки
+                        играбельно в браузере
                       </span>
                     )}
                   </div>
@@ -192,7 +190,7 @@ export default function LibraryView({
               {/* meta chips */}
               <Reveal delay={80}>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {[shownGame.genre, `${shownGame.size} на диске`, shownGame.developer, shownGame.engine].map((c) => (
+                  {[shownGame.genre, shownGame.developer, shownGame.engine].map((c) => (
                     <span key={c} className="chip px-3 py-1.5 text-[11.5px] font-bold text-[var(--tx2)]">
                       {c}
                     </span>
@@ -223,11 +221,14 @@ export default function LibraryView({
                   </button>
                   {shownGame.liveUrl && (
                     <button
-                      onClick={openDemo}
+                      onClick={openBrowser}
                       className="btn-ghost flex items-center gap-2 border-[color-mix(in_srgb,var(--accent-2)_40%,var(--line-2))] px-5 py-3.5 text-[13.5px] text-[var(--accent-2)]"
                     >
-                      <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                      Веб-демо 3D
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3Z" />
+                      </svg>
+                      Играть в браузере
                     </button>
                   )}
                 </div>
@@ -584,53 +585,7 @@ export default function LibraryView({
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {shownGame.screenshots.map((sc, i) => (
                   <Reveal key={`${sc.kind}-${i}`} delay={i * 90}>
-                    {sc.kind === "placeholder" ? (
-                      <ShotPlaceholder label={sc.label} sub="арт добавит разработчик" />
-                    ) : sc.kind === "live" ? (
-                      <button
-                        onClick={openDemo}
-                        className="group relative block aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-[var(--line)] text-left transition-colors hover:border-[color-mix(in_srgb,var(--accent-2)_50%,var(--line))]"
-                      >
-                        <iframe
-                          src={sc.src}
-                          title={sc.label}
-                          loading="lazy"
-                          sandbox="allow-scripts allow-same-origin"
-                          className="pointer-events-none absolute inset-0 h-full w-full scale-[1.6] border-0"
-                          style={{ transformOrigin: "center center" }}
-                        />
-                        <span className="absolute inset-0 bg-gradient-to-t from-[rgba(6,8,12,0.88)] via-transparent to-transparent" />
-                        <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.75)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent-2)] backdrop-blur-sm">
-                          <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                          live
-                        </span>
-                        <span className="font-mono2 absolute bottom-3 left-4 text-[11px] font-bold text-[var(--tx2)]">{sc.label}</span>
-                        <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(6,8,12,0.7)] text-[var(--tx)] opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 4.5v15a1 1 0 0 0 1.5.87l13-7.5a1 1 0 0 0 0-1.74l-13-7.5A1 1 0 0 0 7 4.5Z" />
-                          </svg>
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={openDemo}
-                        className="group relative flex aspect-[16/9] w-full flex-col items-center justify-center overflow-hidden rounded-[14px] border border-[var(--line)] text-center transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_50%,var(--line))]"
-                        style={{ background: "linear-gradient(160deg, var(--bg2), var(--bg1))" }}
-                      >
-                        <span
-                          className="flex h-14 w-14 items-center justify-center rounded-full text-[var(--accent)] transition-transform duration-300 group-hover:scale-110"
-                          style={{ background: "color-mix(in srgb, var(--accent) 13%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)" }}
-                        >
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 4.5v15a1 1 0 0 0 1.5.87l13-7.5a1 1 0 0 0 0-1.74l-13-7.5A1 1 0 0 0 7 4.5Z" />
-                          </svg>
-                        </span>
-                        <span className="font-display mt-3 text-[14px] font-extrabold uppercase tracking-[0.12em]">{sc.label}</span>
-                        <span className="font-mono2 mt-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--tx3)]">
-                          запускается прямо в лаунчере
-                        </span>
-                      </button>
-                    )}
+                    <ShotPlaceholder label={sc.label} sub="арт добавит разработчик" />
                   </Reveal>
                 ))}
               </div>
@@ -687,53 +642,6 @@ export default function LibraryView({
           </AnimatePresence>
         )}
       </div>
-
-      {/* веб-демо */}
-      <Modal open={demoOpen} onClose={() => setDemoOpen(false)} wide>
-        <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] p-5">
-          <div>
-            <p className="font-mono2 text-[10.5px] font-bold uppercase tracking-[0.22em] text-[var(--accent-2)]">
-              прямая трансляция сборки
-            </p>
-            <h3 className="font-display mt-1 text-[17px] font-extrabold">Fantazia RP 3D — веб-демо</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {shownGame.liveUrl && (
-              <a
-                href={shownGame.liveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-ghost flex items-center gap-1.5 px-3 py-2 text-[12px]"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 4h6v6M20 4 10 14M9 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
-                </svg>
-                В браузере
-              </a>
-            )}
-            <button onClick={() => setDemoOpen(false)} className="btn-ghost flex h-8 w-8 items-center justify-center" aria-label="Закрыть">
-              <IconX />
-            </button>
-          </div>
-        </div>
-        <div className="relative aspect-[16/9] w-full bg-black">
-          <FantaziaScene className="absolute inset-0 h-full w-full" />
-          {shownGame.liveUrl && demoOpen && (
-            <iframe
-              src={shownGame.liveUrl}
-              title="Fantazia RP 3D — играбельное веб-демо"
-              sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
-              className="absolute inset-0 h-full w-full border-0"
-            />
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 p-5">
-          <DevChip label="Полный клиент в разработке" />
-          <p className="text-[12px] text-[var(--tx3)]">
-            Это браузерная сборка для демонстрации мира. Полноценный клиент выйдет вместе с релизом — управление: WASD + мышь.
-          </p>
-        </div>
-      </Modal>
 
       <PreRegisterModal open={modal} onClose={() => setModal(false)} gameTitle={shownGame.title} gameId={shownGame.id} />
     </div>
