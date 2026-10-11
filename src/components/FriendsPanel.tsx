@@ -1,3 +1,4 @@
+import OnlineSetupGuide from "./OnlineSetupGuide";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Account } from '../lib/auth';
 import { CloudClient, onlineEnabled, onlineAvatar } from '../lib/online';
@@ -52,7 +53,7 @@ export default function FriendsPanel({localUser}: {localUser:Account}) {
     <h2 id="friends-title" className="font-display mt-2 text-[22px] font-extrabold">Играть интереснее вместе.</h2>
     {!onlineEnabled ? <div className="mt-4 rounded-xl border border-[var(--line)] p-4">
       <p className="text-[13px] font-bold">Сервер друзей ещё не подключён</p>
-      <p className="mt-2 text-[12px] leading-relaxed text-[var(--tx3)]">Настоящий поиск по юзернейму появится после подключения общей базы аккаунтов владельцем проекта. В этой сборке нет выдуманных игроков и локального поиска, выдаваемого за онлайн.</p>
+      <p className="mt-2 text-[12px] leading-relaxed text-[var(--tx3)]">Чтобы находить реальных пользователей, нужно один раз подключить общую базу аккаунтов и отправку писем. Это делает владелец проекта, не каждый игрок.</p>
       <p className="mt-2 text-[12px] text-[var(--tx3)]">Своя аватарка уже доступна ниже. Общий вход в игры — отдельный будущий этап.</p>
     </div> : <>
       <p className="mt-3 text-[12px] leading-relaxed text-[var(--tx3)]">Это онлайн-профиль для друзей, отдельно от локального профиля лаунчера. Вход — по коду на почту. Электронная почта не видна другим игрокам. Вход в игры ещё не подключён.</p>
@@ -85,5 +86,6 @@ export default function FriendsPanel({localUser}: {localUser:Account}) {
       {error&&<p className="mt-3 rounded-lg border border-red-400/30 p-3 text-[12px] text-red-300" role="alert">{error}</p>}
       {notice&&<p className="mt-3 text-[12px] text-[var(--accent)]" role="status">{notice}</p>}
     </>}
+    <OnlineSetupGuide />
   </section>;
 }

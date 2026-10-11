@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GAMES, TICKER } from "../data/games";
 import { useWaitlist } from "../lib/waitlist";
-import { useProgress } from "../lib/progress";
 import { useSettings } from "../lib/settings";
 import { APP_VERSION, APP_CHANNEL, runtimeMode } from "../lib/version";
 import { ArtSurface, ParkScene } from "./Art";
@@ -47,7 +46,7 @@ function SystemStatus() {
       value: s.periodicCheck ? "автопроверка каждые 5 минут" : "вручную из настроек",
       dot: s.periodicCheck ? "var(--accent-2)" : "var(--tx3)",
     },
-    { label: "Лист ожидания", value: `${entries.length} записей на этом устройстве`, dot: "var(--accent)" },
+    { label: "Вишлист", value: `${entries.length} записей на этом устройстве`, dot: "var(--accent)" },
   ];
 
   return (
@@ -108,7 +107,6 @@ export default function HomeView({
   const [modal, setModal] = useState(false);
   const paraRef = useRef<HTMLDivElement>(null);
   const { entries } = useWaitlist();
-  const { level, xp, ach } = useProgress();
   const tw = GAMES[0];
   const fz = GAMES[1];
 
@@ -162,7 +160,7 @@ export default function HomeView({
                 </svg>
               </button>
               <button onClick={() => setModal(true)} className="btn-ghost flex items-center gap-2.5 px-6 py-3.5 text-[14px]">
-                <IconClock />В лист ожидания
+                <IconClock />В вишлист
               </button>
             </div>
           </Reveal>
@@ -170,7 +168,7 @@ export default function HomeView({
             <div className="mt-7 flex flex-wrap items-center gap-2.5">
               <span className="chip flex items-center gap-2 px-3 py-1.5 text-[11.5px] font-bold text-[var(--accent-2)]">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                лист ожидания открыт
+                вишлист без почты
               </span>
               <span className="chip font-mono2 px-3 py-1.5 text-[11px] font-semibold text-[var(--tx2)]">v{APP_VERSION}</span>
               <span className="chip font-mono2 px-3 py-1.5 text-[11px] font-semibold text-[var(--tx2)]">
@@ -198,7 +196,7 @@ export default function HomeView({
               <span className="absolute inset-0 bg-gradient-to-t from-[rgba(6,8,12,0.9)] via-transparent to-transparent" />
               <span className="absolute left-4 top-3.5 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.72)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--accent-2)] backdrop-blur-sm">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
-                играбельно в браузере
+                в разработке · Godot
               </span>
               <span className="font-display absolute bottom-3 left-4 text-[15px] font-extrabold">{fz.title}</span>
               <span className="font-mono2 absolute bottom-3.5 right-4 text-[10px] font-bold text-[var(--accent-2)]">{fz.progress}%</span>
@@ -246,10 +244,10 @@ export default function HomeView({
       <Reveal className="mt-10">
         <div className="panel grid grid-cols-2 divide-x divide-[var(--line)] md:grid-cols-4" style={{ borderRadius: 16 }}>
           {[
-            { v: entries.length, l: "записей в листе ожидания" },
-            { v: level, l: "уровень игрока" },
-            { v: xp, l: "всего опыта заработано" },
-            { v: ach.length, l: "достижений открыто" },
+            { v: entries.length, l: "игр в вашем вишлисте" },
+            { v: 2, l: "игры в разработке" },
+            { v: 1, l: "автор проекта" },
+            { v: 0, l: "готовых игровых релизов" },
           ].map((s, i) => (
             <div key={s.l} className={`px-6 py-6 ${i >= 2 ? "border-t border-[var(--line)] md:border-t-0" : ""}`}>
               <p className="font-display text-[26px] font-extrabold tracking-tight">

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { DLC_STATUS, GAMES } from "../data/games";
 import type { Game } from "../data/games";
 import { useToast } from "../lib/toast";
-import { useProgress } from "../lib/progress";
 import { ArtSurface, ShotPlaceholder } from "./Art";
 import {
   Reveal,
@@ -74,7 +73,6 @@ export default function LibraryView({
   query: string;
 }) {
   const { push } = useToast();
-  const { level, into, grant } = useProgress();
   const [shake, setShake] = useState(false);
   const [modal, setModal] = useState(false);
   const [reqTab, setReqTab] = useState<"min" | "rec">("min");
@@ -82,7 +80,6 @@ export default function LibraryView({
   const openBrowser = () => {
     if (!shownGame.liveUrl) return;
     window.open(shownGame.liveUrl, "_blank", "noopener");
-    grant("browser-play", 15, "Запуск Fantazia RP в браузере");
   };
 
   const q = query.trim().toLowerCase();
@@ -210,12 +207,12 @@ export default function LibraryView({
                     ИГРАТЬ — НЕДОСТУПНО
                   </button>
                   <button onClick={() => setModal(true)} className="btn-ghost flex items-center gap-2 px-5 py-3.5 text-[13.5px]">
-                    <IconClock />В лист ожидания
+                    <IconClock />В вишлист
                   </button>
                   <button
-                    onClick={() => push("ok", "Следим за " + shownGame.title, "Пришлём уведомление, когда игра станет доступна.")}
+                    onClick={() => setModal(true)}
                     className="btn-ghost flex h-[50px] w-[50px] items-center justify-center"
-                    aria-label="Следить за игрой"
+                    aria-label="Добавить игру в вишлист"
                   >
                     <IconBell />
                   </button>
@@ -228,70 +225,11 @@ export default function LibraryView({
                         <circle cx="12" cy="12" r="9" />
                         <path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3Z" />
                       </svg>
-                      Играть в браузере
+                      Открыть веб-проект
                     </button>
                   )}
                 </div>
               </Reveal>
-
-              {/* прогресс игрока (TemkaWorld) */}
-              {shownGame.id === "temkaworld" && (
-                <Reveal delay={160}>
-                  <div className="anim-border panel mt-5 grid divide-y divide-[var(--line)] overflow-hidden sm:grid-cols-3 sm:divide-x sm:divide-y-0" style={{ borderRadius: 16 }}>
-                    <div className="px-5 py-4">
-                      <p className="font-mono2 text-[9.5px] font-bold uppercase tracking-[0.2em] text-[var(--tx3)]">уровень игрока</p>
-                      <div className="mt-2 flex items-end gap-2.5">
-                        <span className="font-display text-[30px] font-extrabold leading-none text-accent">{level}</span>
-                        <span className="font-mono2 pb-0.5 text-[10.5px] font-bold text-[var(--tx3)]">
-                          {level >= 10 ? "бункер открыт!" : `ещё ${10 - level} ур. до бункера`}
-                        </span>
-                      </div>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--bg3)]">
-                        <div className="progress-fill h-full rounded-full" style={{ width: `${into}%` }} />
-                      </div>
-                      <p className="font-mono2 mt-1.5 text-[9.5px] font-semibold text-[var(--tx3)]">XP {into} / 100 · Temka_Игрок</p>
-                    </div>
-                    <div className="px-5 py-4">
-                      <p className="font-mono2 text-[9.5px] font-bold uppercase tracking-[0.2em] text-[var(--tx3)]">сюжет</p>
-                      <p className="mt-2 text-[13.5px] font-extrabold leading-tight">Глава 2 · Возвращение в парк</p>
-                      <div className="mt-3 flex items-center gap-2">
-                        {["Пролог", "Возвращение", "Миссия", "Бункер"].map((c, i) => (
-                          <div key={c} className="flex flex-1 flex-col items-center gap-1.5">
-                            <span
-                              className={`h-2 w-full rounded-full ${
-                                i === 0 ? "bg-accent" : i === 1 ? "pulse-dot bg-accent opacity-70" : "bg-[var(--bg3)]"
-                              }`}
-                            />
-                            <span className="font-mono2 text-[8px] font-bold uppercase tracking-wider text-[var(--tx3)]">{c}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="px-5 py-4">
-                      <p className="font-mono2 text-[9.5px] font-bold uppercase tracking-[0.2em] text-[var(--tx3)]">секретный бункер</p>
-                      <div className={`mt-2 flex items-center gap-2 ${level >= 10 ? "text-[var(--accent-2)]" : "text-[var(--danger)]"}`}>
-                        {level >= 10 ? <IconCheck /> : <IconLock />}
-                        <span className="text-[13.5px] font-extrabold">{level >= 10 ? "Доступ разрешён" : "Закрыт защитной системой"}</span>
-                      </div>
-                      <div className="mt-3 flex gap-1">
-                        {Array.from({ length: 10 }, (_, i) => (
-                          <span
-                            key={i}
-                            className="h-3.5 flex-1 rounded-[3px] transition-colors duration-300"
-                            style={{
-                              background: i < level ? "var(--accent)" : "var(--bg3)",
-                              boxShadow: i < level ? "0 0 8px color-mix(in srgb, var(--accent) 60%, transparent)" : "inset 0 0 0 1px var(--line-2)",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <p className="font-mono2 mt-1.5 text-[9.5px] font-semibold text-[var(--tx3)]">
-                        {level >= 10 ? "защитная система отключена" : "требуется минимум 10 уровень"}
-                      </p>
-                    </div>
-                  </div>
-                </Reveal>
-              )}
 
               {/* сюжет + персонажи (TemkaWorld) */}
               {shownGame.id === "temkaworld" && (
@@ -333,7 +271,7 @@ export default function LibraryView({
                       {
                         n: "04",
                         title: "Финал вступления: Секретный Бункер",
-                        text: "Хранилище открыто, но защитная система требует минимум 10 уровень. Жизнь в Temkaworld только начинается.",
+                        text: "Секретный Бункер — часть задуманного сюжета. Его механики ещё в разработке; уровни лаунчера для доступа не требуются.",
                         state: "locked",
                         label: "финал",
                       },
@@ -594,7 +532,7 @@ export default function LibraryView({
               <Reveal delay={60}>
                 <div className="mt-8 flex items-center justify-between gap-3">
                   <h2 className="font-display text-[21px] font-extrabold tracking-tight">
-                    <MaskReveal>Системные требования</MaskReveal>
+                    <MaskReveal>Требования · предварительно</MaskReveal>
                   </h2>
                   <div className="flex gap-1 rounded-[10px] border border-[var(--line-2)] bg-[var(--bg2)] p-1">
                     {(["min", "rec"] as const).map((t) => (

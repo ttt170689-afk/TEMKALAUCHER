@@ -79,7 +79,7 @@ export default function AuthView() {
     sfx.level();
     grant("signup-reg", 100, "Регистрация аккаунта");
     unlockAch("signup");
-    push("ok", `Добро пожаловать, ${name.trim()}!`, "Аккаунт создан. +100 XP за регистрацию.");
+    push("ok", `Добро пожаловать, ${name.trim()}!`, "Локальный профиль создан.");
   };
 
   const submitLogin = async () => {
@@ -138,7 +138,7 @@ export default function AuthView() {
               <ul className="mt-5 flex flex-col gap-2.5">
                 {[
                   "TemkaWorld и Fantazia RP в одной библиотеке",
-                  "Система уровней и XP — качайся до 10 уровня",
+                  "Вишлист в один клик — без почты",
                   "Кастомный курсор, темы и кастомизация профиля",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2.5 text-[12.5px] font-semibold text-[var(--tx2)]">
@@ -314,7 +314,7 @@ export default function AuthView() {
                 Секунду…
               </>
             ) : tab === "register" ? (
-              "Создать аккаунт · +100 XP"
+              "Создать аккаунт"
             ) : (
               "Войти в лаунчер"
             )}

@@ -72,6 +72,21 @@ function Slider({
 
 /* ---------- view ---------- */
 export default function SettingsView() {
+  const [folderBusy,setFolderBusy] = useState(false);
+  const folderLock = useRef(false);
+  const desktopFolder = (window as unknown as {temka?: {chooseGameFolder?: (current:string)=>Promise<{ok:boolean;canceled?:boolean;path?:string;error?:string}>}}).temka?.chooseGameFolder;
+  const chooseFolder = async () => {
+    if (!desktopFolder || folderLock.current) return;
+    folderLock.current=true; setFolderBusy(true);
+    try {
+      const result=await desktopFolder(s.downloadPath);
+      if(!result.ok) throw new Error(result.error || "Не удалось открыть диалог.");
+      if(result.canceled) return;
+      if(!result.path || !set("downloadPath",result.path)) throw new Error("Не удалось сохранить путь на этом устройстве.");
+      push("ok","Папка сохранена",result.path);
+    } catch(error) {push("warn","Выбор папки",error instanceof Error ? error.message : String(error));}
+    finally {folderLock.current=false;setFolderBusy(false);}
+  };
   const { s, set, reset, savedTick } = useSettings();
   const { push } = useToast();
   const pwa = usePwaInstall();
@@ -232,7 +247,7 @@ export default function SettingsView() {
           <Row title="Аура-свечение" desc="Мягкое радиальное свечение вокруг кольца, растёт от скорости.">
             <Toggle on={s.cursorGlow} onChange={(v) => set("cursorGlow", v)} label="Аура" />
           </Row>
-          <Row title="Тег игрока" desc="Игровая плашка «LVL 0» рядом с кольцом курсора.">
+          <Row title="Тег игрока" desc="Плашка «АЛЬФА» рядом с кольцом курсора.">
             <Toggle on={s.playerTag} onChange={(v) => set("playerTag", v)} label="Тег игрока" />
           </Row>
           <Row title="Размер кольца" desc="Диаметр кольца, реагирующего на наведение.">
@@ -244,21 +259,25 @@ export default function SettingsView() {
         <Section title="Загрузки и обновления" delay={180} icon={<IconDownload />}>
           <div className="px-5 py-4">
             <p className="text-[14px] font-extrabold">Папка для игр</p>
-            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Сюда будут установлены TemkaWorld и Fantazia RP после релиза.</p>
+            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Путь для будущих установок. Игры ещё не доступны; выбор папки ничего не скачивает.</p>
             <div className="mt-3 flex gap-2">
               <input
                 className="input-tl font-mono2 min-w-0 flex-1 px-4 py-2.5 text-[12.5px]"
+                aria-label="Папка для игр"
+                readOnly
                 value={s.downloadPath}
                 onChange={(e) => set("downloadPath", e.target.value)}
               />
               <button
-                onClick={() => push("info", "Выбор папки", "Диалог выбора станет доступен вместе с установкой игр.")}
+                onClick={() => void chooseFolder()}
+                disabled={folderBusy || !desktopFolder}
                 className="btn-ghost flex-none px-4 py-2.5 text-[12.5px]"
               >
-                Обзор…
+                {folderBusy ? "Выбор…" : "Обзор…"}
               </button>
             </div>
           </div>
+          {!desktopFolder && <p className="px-5 pb-4 text-xs text-[var(--tx3)]">Выбор папки доступен в desktop-сборке с обновлённым нативным шаблоном (Publisher 1.0.5). В браузере он недоступен.</p>}
           <Row title="Ограничение скорости" desc="Чтобы стримить и качать одновременно без лагов.">
             <Slider
               value={s.speedLimit}

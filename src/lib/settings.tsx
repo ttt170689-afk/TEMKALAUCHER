@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 export interface Settings {
@@ -59,7 +59,7 @@ const KEY = "temka-launcher-settings-v1";
 
 interface Ctx {
   s: Settings;
-  set: <K extends keyof Settings>(k: K, v: Settings[K]) => void;
+  set: <K extends keyof Settings>(k: K, v: Settings[K]) => boolean;
   reset: () => void;
   savedTick: number;
 }
@@ -80,23 +80,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<Settings>(load);
   const [savedTick, setSavedTick] = useState(0);
 
-  const set = useCallback(<K extends keyof Settings>(k: K, v: Settings[K]) => {
-    setS((prev) => ({ ...prev, [k]: v }));
+  const ref = useRef(s);
+  const persist = useCallback((next: Settings) => {
+    try {localStorage.setItem(KEY, JSON.stringify(next));} catch {return false;}
+    ref.current=next; setS(next); setSavedTick(t=>t+1); return true;
   }, []);
-
-  const reset = useCallback(() => {
-    setS(DEFAULTS);
-    setSavedTick((t) => t + 1);
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-    } catch {
-      /* noop */
-    }
-    setSavedTick((t) => t + 1);
-  }, [s]);
+  const set = useCallback(<K extends keyof Settings>(k: K, v: Settings[K]) => persist({...ref.current,[k]:v}), [persist]);
+  const reset = useCallback(() => {persist(DEFAULTS);}, [persist]);
 
   // apply to DOM
   useEffect(() => {

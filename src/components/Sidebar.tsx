@@ -1,6 +1,7 @@
+import { APP_VERSION } from "../lib/version";
+import { hasLocalCreatorSignature, LOCAL_CREATOR_SIGNATURE_NOTE } from "../lib/creatorIdentity";
 import { motion } from "framer-motion";
 import { useToast } from "../lib/toast";
-import { useProgress } from "../lib/progress";
 import { useAuth } from "../lib/auth";
 import { AvatarSvg } from "./AvatarSvg";
 import { IconHome, IconLibrary, IconSettings, IconLock, IconNews, IconUser } from "./ui";
@@ -15,11 +16,10 @@ const NAV: { id: View; label: string; icon: () => React.ReactNode }[] = [
   { id: "settings", label: "Настройки", icon: IconSettings },
 ];
 
-const SOON = ["Магазин", "Друзья", "Моды"];
+const SOON = ["Магазин", "Моды"];
 
 export default function Sidebar({ view, setView }: { view: View; setView: (v: View) => void }) {
   const { push } = useToast();
-  const { level, into } = useProgress();
   const { user } = useAuth();
 
   return (
@@ -116,12 +116,8 @@ export default function Sidebar({ view, setView }: { view: View; setView: (v: Vi
           )}
           <div className="hidden min-w-0 flex-1 lg:block">
             <p className="truncate text-[13px] font-extrabold leading-tight">{user?.username ?? "Гость"}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--bg3)]">
-                <div className="progress-fill h-full rounded-full" style={{ width: `${into}%` }} />
-              </div>
-              <span className="font-mono2 text-[9px] font-bold text-[var(--accent)]">LVL {level}</span>
-            </div>
+            {hasLocalCreatorSignature(user?.username) && <p className="mt-1 text-[9px] text-[var(--accent)]" title={LOCAL_CREATOR_SIGNATURE_NOTE}>Разработчик · локально</p>}
+            <p className="mt-1 text-[10px] text-[var(--tx3)]">АЛЬФА · {APP_VERSION}</p>
           </div>
           <span className="ml-auto hidden h-2 w-2 flex-none rounded-full bg-[var(--accent-2)] shadow-[0_0_8px_var(--accent-2)] lg:block" />
         </button>

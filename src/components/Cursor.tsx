@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../lib/settings";
-import { useProgress } from "../lib/progress";
 
 const HOVER_SEL = "a, button, [role='button'], input, select, textarea, label, [data-cursor]";
 const TEXT_SEL = "input, textarea, select";
@@ -34,7 +33,7 @@ const GOLD = "#ffd76a";
 
 export default function Cursor() {
   const { s } = useSettings();
-  const { level } = useProgress();
+  const level = 0; // progression is disabled
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
@@ -662,7 +661,7 @@ export default function Cursor() {
               opacity: 0.92,
             }}
           >
-            {gold ? `LVL ${level} · КЛЮЧ` : `LVL ${level}`}
+            АЛЬФА
           </div>
         )}
       </div>

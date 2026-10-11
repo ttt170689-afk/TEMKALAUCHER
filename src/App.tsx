@@ -15,7 +15,6 @@ import AuthView from "./components/AuthView";
 import ProfileView from "./components/ProfileView";
 import UpdateBanner from "./components/UpdateBanner";
 import UpdateOverlay from "./components/UpdateOverlay";
-import ConfettiFx from "./components/ConfettiFx";
 import { AvatarSvg } from "./components/AvatarSvg";
 import Background from "./components/Background";
 import Cursor from "./components/Cursor";
@@ -30,7 +29,7 @@ import { GAMES } from "./data/games";
 
 const VIEW_TITLES: Record<View, { title: string; sub: string }> = {
   home: { title: "Главная", sub: "обзор миров Temka" },
-  news: { title: "Новости", sub: "лента объявлений" },
+  news: { title: "Новости", sub: "что добавлено, исправлено и убрано" },
   library: { title: "Библиотека", sub: "игры и дополнения" },
   profile: { title: "Профиль", sub: "аккаунт и кастомизация" },
   settings: { title: "Настройки", sub: "конфигурация лаунчера" },
@@ -58,31 +57,6 @@ function StatusBar() {
         </span>
       </span>
     </footer>
-  );
-}
-
-/* всплывающие «+XP» в позиции курсора */
-function XpFloater() {
-  const [items, setItems] = useState<{ id: number; x: number; y: number; amount: number }[]>([]);
-  useEffect(() => {
-    let n = 0;
-    const on = (e: Event) => {
-      const d = (e as CustomEvent).detail as { amount: number; x: number; y: number };
-      const id = ++n + Date.now();
-      setItems((p) => [...p.slice(-5), { id, ...d }]);
-      window.setTimeout(() => setItems((p) => p.filter((i) => i.id !== id)), 1150);
-    };
-    window.addEventListener("xp-float", on);
-    return () => window.removeEventListener("xp-float", on);
-  }, []);
-  return (
-    <>
-      {items.map((i) => (
-        <span key={i.id} className="float-xp font-mono2" style={{ left: i.x, top: i.y }}>
-          +{i.amount} XP
-        </span>
-      ))}
-    </>
   );
 }
 
@@ -191,8 +165,6 @@ function Shell() {
     <div className="relative flex h-full flex-col overflow-hidden">
       <Background />
       <Cursor />
-      <XpFloater />
-      <ConfettiFx />
       {booting && (
         <Boot
           onDone={() => {
@@ -238,7 +210,7 @@ function Shell() {
                 <AvatarSvg variant={user.profile.avatar} color={user.profile.color} size={36} />
                 <span className="leading-tight text-left">
                   <span className="block text-[12.5px] font-extrabold">{user.username}</span>
-                  <span className="font-mono2 block text-[9.5px] font-bold uppercase tracking-widest text-[var(--accent-2)]">online</span>
+                  <span className="font-mono2 block text-[9.5px] font-bold uppercase tracking-widest text-[var(--tx3)]">локальный профиль</span>
                 </span>
               </button>
             )}

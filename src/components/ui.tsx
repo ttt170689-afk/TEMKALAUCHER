@@ -2,10 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSettings } from "../lib/settings";
-import { useToast } from "../lib/toast";
-import { useProgress } from "../lib/progress";
 import { useWaitlist } from "../lib/waitlist";
-import { useAuth } from "../lib/auth";
 
 /* ================= glare-блик за курсором ================= */
 export const glareMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -260,142 +257,27 @@ export function Modal({
   );
 }
 
-/* ================= pre-register modal (реальный лист ожидания) ================= */
-export function PreRegisterModal({
-  open,
-  onClose,
-  gameTitle,
-  gameId = "all",
-}: {
-  open: boolean;
-  onClose: () => void;
-  gameTitle?: string;
-  gameId?: string;
-}) {
-  const { push } = useToast();
-  const { grant, unlockAch } = useProgress();
-  const { has, join, leave, position } = useWaitlist();
-  const { user } = useAuth();
-  const [email, setEmail] = useState("");
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState(false);
-  const already = has(gameId);
-
+/* One click adds immediately. Confirmation is not a signup form. */
+export function PreRegisterModal({open,onClose,gameTitle,gameId="all"}: {open:boolean;onClose:()=>void;gameTitle?:string;gameId?:string}) {
+  const {has,join,leave} = useWaitlist();
+  const processed = useRef(false);
+  const [error,setError] = useState("");
   useEffect(() => {
-    if (open) {
-      setEmail(user?.email ?? "");
-      setErr("");
-      setDone(false);
-    }
-  }, [open, user]);
-
-  const submit = () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      setErr("Похоже, в адресе ошибка — проверьте и попробуйте ещё раз.");
-      return;
-    }
-    setErr("");
-    join(gameId, email);
-    setDone(true);
-    push("ok", "Вы в списке ожидания!", gameTitle ? `Сообщим, когда «${gameTitle}» выйдет в релиз.` : "Сообщим, когда игра выйдет в релиз.");
-    grant("waitlist", 50, "Запись в лист ожидания");
-    unlockAch("waitlist");
-  };
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6">
-        {already && !done ? (
-          /* уже записан */
-          <div className="flex flex-col items-center py-4 text-center">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: "color-mix(in srgb, var(--accent-2) 15%, transparent)" }}
-            >
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent-2)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            </div>
-            <h3 className="font-display mt-4 text-lg font-bold">Вы уже в списке</h3>
-            <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[var(--tx2)]">
-              {gameTitle ? `«${gameTitle}» ждёт вас.` : "Игра ждёт вас."} Ваша позиция в очереди:
-            </p>
-            <p className="font-display mt-2 text-[26px] font-extrabold text-accent">#{position(gameId).toLocaleString("ru-RU")}</p>
-            <div className="mt-5 flex items-center gap-2.5">
-              <button
-                onClick={() => {
-                  leave(gameId);
-                  push("info", "Запись отменена", "Место в листе ожидания освобождено.");
-                }}
-                className="btn-ghost border-[color-mix(in_srgb,var(--danger)_40%,var(--line-2))] px-4 py-2.5 text-[12.5px] text-[var(--danger)]"
-              >
-                Отписаться
-              </button>
-              <button className="btn-primary px-5 py-2.5 text-[13px]" onClick={onClose}>
-                Понятно
-              </button>
-            </div>
-          </div>
-        ) : done ? (
-          <div className="flex flex-col items-center py-6 text-center">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: "color-mix(in srgb, var(--accent-2) 15%, transparent)" }}
-            >
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent-2)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                <path className="check-draw" d="M20 6 9 17l-5-5" />
-              </svg>
-            </div>
-            <h3 className="font-display mt-4 text-lg font-bold">Место забронировано</h3>
-            <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[var(--tx2)]">
-              Письмо-подтверждение уже летит на <span className="font-bold text-[var(--tx)]">{email}</span>.
-            </p>
-            <p className="font-mono2 chip mt-4 px-4 py-2 text-[12px] font-extrabold text-[var(--accent)]">
-              ваша позиция · #{position(gameId).toLocaleString("ru-RU")}
-            </p>
-            <button className="btn-ghost mt-5 px-5 py-2.5 text-sm" onClick={onClose}>
-              Отлично
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-mono2 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--accent)]">
-                  Ранний доступ
-                </p>
-                <h3 className="font-display mt-1.5 text-xl font-bold leading-tight">
-                  {gameTitle ? `Лист ожидания «${gameTitle}»` : "Лист ожидания Temka"}
-                </h3>
-              </div>
-              <button onClick={onClose} className="btn-ghost flex h-8 w-8 items-center justify-center" aria-label="Закрыть">
-                <IconX />
-              </button>
-            </div>
-            <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--tx2)]">
-              Игра ещё в разработке и недоступна для запуска. Оставьте почту — пришлём уведомление о выходе в первой волне. Запись сохраняется в лаунчере.
-            </p>
-            <label className="mt-5 block">
-              <span className="mb-1.5 block text-[12px] font-bold uppercase tracking-wider text-[var(--tx3)]">E-mail</span>
-              <input
-                className="input-tl w-full px-4 py-3 text-[14px]"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
-                autoFocus
-              />
-            </label>
-            {err && <p className="shake mt-2 text-[12.5px] font-semibold text-[var(--danger)]">{err}</p>}
-            <button className="btn-primary mt-4 w-full py-3 text-[14px]" onClick={submit}>
-              Забронировать место · +50 XP
-            </button>
-            <p className="mt-3 text-center text-[11.5px] text-[var(--tx3)]">Никакого спама — только новости о релизе.</p>
-          </>
-        )}
-      </div>
-    </Modal>
-  );
+    if (!open) {processed.current=false;return;}
+    if (processed.current) return;
+    processed.current=true;
+    setError(has(gameId) || join(gameId) ? "" : "Не удалось сохранить. Проверьте доступ к локальному хранилищу и повторите.");
+  }, [open,gameId,has,join]);
+  return <Modal open={open} onClose={onClose}><div className="p-8 text-center" role="status">
+    <p className="font-mono2 text-accent text-xs">ВИШЛИСТ · НА ЭТОМ УСТРОЙСТВЕ</p>
+    <h3 className="font-display mt-4 text-xl font-bold">{error ? "Не удалось добавить" : "Добавлено в вишлист ✓"}</h3>
+    <p className="mt-4 text-sm text-[var(--tx2)]">{error || `${gameTitle || "Игры Temka"} — в вашем списке желаемого. Без почты и регистрации в рассылке.`}</p>
+    <p className="mt-3 text-xs text-[var(--tx3)]">Это локальная закладка, общая для профилей этого устройства. Она не отправляется разработчику и не включает уведомления о релизе.</p>
+    <div className="mt-6 flex justify-center gap-3">
+      {!error && <button className="btn-ghost px-4 py-3" onClick={() => {if(leave(gameId)) onClose(); else setError("Не удалось сохранить изменение.");}}>Убрать из вишлиста</button>}
+      <button className="btn-primary px-5 py-3" onClick={onClose}>Готово</button>
+    </div>
+  </div></Modal>;
 }
 
 /* ================= icons ================= */
