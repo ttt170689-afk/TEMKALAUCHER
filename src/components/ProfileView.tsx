@@ -1,5 +1,7 @@
+import FriendsPanel from "./FriendsPanel";
+import { prepareAvatar, isCustomAvatar } from "../lib/avatar";
 import { USERNAME_MAX_LENGTH } from "../lib/username";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth, TITLES, AVATAR_COLORS } from "../lib/auth";
 import { AVATAR_VARIANTS, AvatarSvg } from "./AvatarSvg";
 import { useProgress, ACHIEVEMENTS, XP_PER_LEVEL, BUNKER_LEVEL } from "../lib/progress";
@@ -53,6 +55,22 @@ export default function ProfileView() {
   const [nameDraft, setNameDraft] = useState(user?.username ?? "");
   const [statusDraft, setStatusDraft] = useState(user?.profile.status ?? "");
   const [confirmDel, setConfirmDel] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const avatarOperation = useRef(0);
+  useEffect(() => () => {avatarOperation.current++;}, []);
+  const chooseAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    const operation = ++avatarOperation.current;
+    setAvatarBusy(true);
+    try {
+      const avatar = await prepareAvatar(file);
+      if (operation !== avatarOperation.current) return;
+      const error = updateProfile({avatar});
+      if (error) throw new Error(error);
+      push("ok", "Аватарка сохранена", "Изображение сохранено на этом устройстве. Публикация для друзей — отдельной кнопкой ниже.");
+    } catch (error) { if (operation !== avatarOperation.current) return; push("warn", "Не удалось сохранить аватарку", String(error instanceof Error ? error.message : error)); }
+    finally {if (operation === avatarOperation.current) setAvatarBusy(false);}
+  };
 
   if (!user) return null;
   const p = user.profile;
@@ -69,7 +87,8 @@ export default function ProfileView() {
   };
 
   const saveStatus = () => {
-    updateProfile({ status: statusDraft.trim().slice(0, 60) || "Игрок миров Temka" });
+    const error = updateProfile({ status: statusDraft.trim().slice(0, 60) || "Игрок миров Temka" });
+    if (error) {push("warn", "Ошибка", error); return;}
     push("ok", "Статус сохранён");
   };
 
@@ -155,6 +174,8 @@ export default function ProfileView() {
         </div>
       </Reveal>
 
+      <FriendsPanel key={user.id} localUser={user} />
+
       {/* ===== кастомизация ===== */}
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
         <Reveal delay={80}>
@@ -176,11 +197,20 @@ export default function ProfileView() {
               </p>
             </div>
 
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <label className="btn-ghost cursor-pointer px-4 py-2 text-[12px]">
+                {avatarBusy ? "Обработка…" : "Загрузить свою аватарку"}
+                <input aria-label="Загрузить свою аватарку" type="file" accept="image/png,image/jpeg,image/webp" disabled={avatarBusy} className="sr-only" onChange={event => {const file = event.target.files?.[0]; event.target.value = ""; void chooseAvatar(file);}} />
+              </label>
+              {isCustomAvatar(p.avatar) && <button disabled={avatarBusy} className="btn-ghost px-3 py-2 text-[12px]" onClick={() => {const error = updateProfile({avatar: "cube"}); if(error) push("warn", "Ошибка", error);}}>Убрать фото</button>}
+            </div>
+            <p className="mt-2 text-[11px] text-[var(--tx3)]">PNG, JPG, WebP до 5 МБ. Обрезка по центру до 512×512. Пока не опубликована — только на этом устройстве.</p>
             <p className="mt-5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Вариант</p>
             <div className="mt-2.5 grid grid-cols-8 gap-2">
               {AVATAR_VARIANTS.map((v) => (
                 <button
                   key={v}
+                  disabled={avatarBusy}
                   onClick={() => updateProfile({ avatar: v })}
                   className={`rounded-[12px] border p-1 transition-all duration-200 hover:-translate-y-0.5 ${
                     p.avatar === v

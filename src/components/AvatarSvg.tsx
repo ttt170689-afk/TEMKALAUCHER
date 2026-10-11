@@ -1,3 +1,4 @@
+import { isCustomAvatar } from "../lib/avatar";
 /* Процедурные аватары: 8 вариантов × 6 цветов */
 export const AVATAR_VARIANTS = ["cube", "knight", "mage", "demon", "bot", "ghost", "cat", "crown"] as const;
 
@@ -10,6 +11,7 @@ export function AvatarSvg({
   color: string;
   size?: number;
 }) {
+  if (isCustomAvatar(variant)) return <img src={variant} alt="Аватар игрока" width={size} height={size} className="flex-none rounded-full object-cover" style={{ width: size, height: size }} />;
   const dark = "rgba(6,8,12,0.9)";
   const body = (
     <>

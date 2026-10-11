@@ -68,7 +68,7 @@ interface Ctx {
   register: (username: string, email: string, pass: string) => Promise<string | null>;
   login: (ident: string, pass: string) => Promise<string | null>;
   logout: () => void;
-  updateProfile: (patch: Partial<Profile>) => void;
+  updateProfile: (patch: Partial<Profile>) => string | null;
   rename: (username: string) => string | null;
   deleteAccount: () => void;
 }
@@ -134,13 +134,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(
     (patch: Partial<Profile>) => {
-      if (!store.session) return;
-      persist({
+      if (!store.session) return "Сначала войди в локальный профиль.";
+      const next = {
         ...store,
         users: store.users.map((u) =>
           u.id === store.session ? { ...u, profile: { ...u.profile, ...patch } } : u
         ),
-      });
+      };
+      try { localStorage.setItem(KEY, JSON.stringify(next)); }
+      catch { return "Не удалось сохранить профиль. Хранилище недоступно или заполнено."; }
+      setStore(next);
+      return null;
     },
     [store, persist]
   );
