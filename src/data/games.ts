@@ -57,7 +57,7 @@ export const GAMES: Game[] = [
     developer: "temka_play · инди-разработка",
     engine: "Собственный движок",
     statusLabel: "В разработке",
-    progress: 62,
+    progress: 10,
     accent: "#ff7a2f",
     screenshots: [
       { kind: "placeholder", label: "День, когда сработала сирена" },
@@ -101,7 +101,7 @@ export const GAMES: Game[] = [
     developer: "temka_play · Temka Studio",
     engine: "Godot Engine",
     statusLabel: "В разработке",
-    progress: 41,
+    progress: 80,
     accent: "#3ddcc2",
     liveUrl: FANTAZIA_LIVE_URL,
     screenshots: [
@@ -143,10 +143,7 @@ export const DLC_STATUS: Record<DlcStatus, { label: string; cls: string }> = {
 
 
 
-/* Готовность считается честно — по реально закрытым главам дорожной карты */
-for (const g of GAMES) {
-  g.progress = Math.round((g.roadmap.filter((m) => m.state === "done").length / g.roadmap.length) * 100);
-}
+// Готовность задаётся автором в progress и не вычисляется из количества этапов roadmap.
 
 export const TICKER = [
   "TEMKAWORLD: ПРОЛОГ И ВОЗВРАЩЕНИЕ ГОТОВЫ",
