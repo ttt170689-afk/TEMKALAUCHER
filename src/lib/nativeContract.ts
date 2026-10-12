@@ -1,4 +1,3 @@
-// Deliberate build guard: an old Publisher must not silently overwrite the fixed native updater.
-// If this import is missing, use Publisher 1.0.6 or newer with the matching native template.
-import contract from '../../electron/native-contract.json';
-if (contract.protocol < 2) throw new Error('Обновите native-шаблон: требуется Publisher 1.0.6.');
+// Old Publisher templates must fail at build time, not replace the fixed updater.
+import contract from '../../electron/release-feed-contract.json';
+if(contract.protocol<3)throw Error('Нужен native-шаблон Publisher 1.0.7.');

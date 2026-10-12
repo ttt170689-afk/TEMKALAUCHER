@@ -7,7 +7,12 @@ export const CHANGE_LABELS: Record<ChangeKind,string> = {added:'Добавлен
 // Publisher may assign a newer version; APP_VERSION keeps the entry accurate.
 // Update these notes intentionally when preparing the next release.
 export const RELEASE_NOTES: ReleaseNote[] = [
- {version:APP_VERSION,date:'2026-10-12',current:true,title:'Проверка обновлений без ложного успеха',summary:'Сверяем GitHub, манифест и пакет. Показываем версии, источник и ошибки.',changes:[
+ {version:APP_VERSION,date:'2026-10-12',current:true,title:'Обновления без зависимости от GitHub API',summary:'Убрана причина отказа проверки при лимите API. Читаем манифесты прямо из релиза.',changes:[
+ {kind:'removed',text:'Обязательный запрос к api.github.com при проверке обновлений. Токен GitHub пользователям не нужен.'},
+ {kind:'fixed',text:'Сверяются latest.yml и манифест конкретного тега. Размер и SHA-512 проверяются; доступность установщика проверяется HEAD-запросом без скачивания EXE.'},
+ {kind:'added',text:'В панели указан прямой источник GitHub Releases. Если заблокирован сам файловый хостинг, остаётся понятная ошибка вместо ложного успеха.'}
+ ]},
+ {version:'1.5.6',date:'2026-10-12',title:'Проверка обновлений без ложного успеха',summary:'Сверяем GitHub, манифест и пакет. Показываем версии, источник и ошибки.',changes:[
  {kind:'fixed',text:'Проверка публичного GitHub API и манифеста конкретного релиза без локального кеширования. Версия и файл должны совпасть.'},
  {kind:'fixed',text:'Ошибки сети и неполный релиз больше не скрываются за сообщением о свежей версии. Панель видна даже при первой неудачной проверке.'},
  {kind:'removed',text:'Убран таймер уведомления «Проверка запущена» и безусловное «У тебя самая свежая версия».'},

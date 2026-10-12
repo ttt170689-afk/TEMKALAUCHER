@@ -273,7 +273,7 @@ export default function SettingsView() {
               </button>
             </div>
           </div>
-          {!desktopFolder && <p className="px-5 pb-4 text-xs text-[var(--tx3)]">Выбор папки доступен в desktop-сборке с обновлённым нативным шаблоном (Publisher 1.0.6). В браузере он недоступен.</p>}
+          {!desktopFolder && <p className="px-5 pb-4 text-xs text-[var(--tx3)]">Выбор папки доступен в desktop-сборке с обновлённым нативным шаблоном (Publisher 1.0.7). В браузере он недоступен.</p>}
           <Row title="Ограничение скорости" desc="Чтобы стримить и качать одновременно без лагов.">
             <Slider
               value={s.speedLimit}
