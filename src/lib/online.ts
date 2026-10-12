@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 import { isCustomAvatar } from './avatar';
+import {readBetaStatus,readBetaResult,validateBetaCode,isGame} from './betaContract';
+import type {BetaRequest,BetaCode,IssuedBetaCode} from './betaContract';
 
 const base = String(import.meta.env.VITE_TEMKA_SUPABASE_URL || '').replace(/\/$/, '');
 const publicKey = String(import.meta.env.VITE_TEMKA_SUPABASE_ANON_KEY || '');
@@ -72,6 +74,13 @@ export class CloudClient {
     return this.session!.access_token;
   }
   private async request(path: string, init: RequestInit = {}) {return this.fetchJson(path, init, await this.token());}
+  async betaStatus(game:string) {if(!isGame(game))throw Error('Неизвестная игра.');return readBetaStatus(await this.request('/rest/v1/rpc/beta_status',{method:'POST',body:JSON.stringify({p_game:game})}),game);}
+  async redeemBeta(game:string,code:string) {if(!isGame(game))throw Error('Неизвестная игра.');return readBetaResult(await this.request('/rest/v1/rpc/beta_redeem',{method:'POST',body:JSON.stringify({p_game:game,p_code:validateBetaCode(code)})}),game);}
+  async betaRequests(game:string):Promise<BetaRequest[]> {const rows=await this.request('/rest/v1/rpc/beta_admin_requests',{method:'POST',body:JSON.stringify({p_game:game})});if(!Array.isArray(rows))throw Error('Неполный список заявок.');return rows;}
+  async betaCodes(game:string):Promise<BetaCode[]> {const rows=await this.request('/rest/v1/rpc/beta_admin_codes',{method:'POST',body:JSON.stringify({p_game:game})});if(!Array.isArray(rows))throw Error('Неполный список кодов.');return rows;}
+  async issueBeta(game:string,approval:boolean,limit:number,hours:number):Promise<IssuedBetaCode> {const r=await this.request('/rest/v1/rpc/beta_admin_issue',{method:'POST',body:JSON.stringify({p_game:game,p_approval:approval,p_limit:limit,p_hours:hours})});if(!r||r.game_id!==game||!UUID.test(r.id||'')||typeof r.code!=='string')throw Error('Сервер не подтвердил создание кода.');return r;}
+  async decideBeta(id:string,state:'approved'|'rejected'|'revoked') {if(!UUID.test(id))throw Error('Некорректная заявка.');const r=await this.request('/rest/v1/rpc/beta_admin_decide',{method:'POST',body:JSON.stringify({p_request:id,p_state:state})});if(r?.id!==id||r?.state!==state)throw Error('Сервер не подтвердил решение.');}
+  async revokeBetaCode(id:string) {if(!UUID.test(id))throw Error('Некорректный код.');await this.request('/rest/v1/rpc/beta_admin_revoke_code',{method:'POST',body:JSON.stringify({p_id:id})});}
   async ownProfile(): Promise<OnlineProfile | null> {const rows = await this.request('/rest/v1/rpc/my_profile', {method:'POST',body:'{}'}); return rows?.[0] || null;}
   async saveUsername(username: string) {
     const name = username.trim(); if(!/^[a-zа-яё0-9_]{3,25}$/i.test(name)) throw new Error('Юзернейм: 3–25 букв, цифр или подчёркиваний.');

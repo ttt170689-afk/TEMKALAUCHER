@@ -1,0 +1,10 @@
+const test=require('node:test'),assert=require('node:assert/strict'),ts=require('typescript'),fs=require('node:fs'),vm=require('node:vm');const exports_={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(require('node:path').join(__dirname,'../src/lib/betaContract.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:exports_});
+const b=exports_;const s={game_id:'fantazia',state:'approved',request_id:'e8ef8742-b09c-47e0-8927-3fe27c0c9b3b',updated_at:'2026-10-12T12:00:00Z'};
+test('code whitespace/hyphens normalize but no actual secret is embedded',()=>{assert.equal(b.normalizeBetaCode(' temka-abcd 1234 '),'TEMKAABCD1234');assert.throws(()=>b.validateBetaCode('короткий'));assert.throws(()=>b.validateBetaCode('A'.repeat(101)));});
+test('status must belong to the selected game',()=>{assert.throws(()=>b.readBetaStatus(s,'temkaworld'));});
+test('approved must have a request and server timestamp',()=>{assert.throws(()=>b.readBetaStatus({...s,request_id:null},'fantazia'));assert.throws(()=>b.readBetaStatus({...s,updated_at:null},'fantazia'));});
+test('unknown/prototype status is rejected',()=>{for(const state of ['current','toString','constructor',''])assert.throws(()=>b.readBetaStatus({...s,state},'fantazia'));});
+test('pending stays pending; client does not autoapprove',()=>{assert.equal(b.readBetaResult({ok:true,status:{...s,state:'pending'}},'fantazia').state,'pending');});
+test('invalid and rate-limited results are not success',()=>{for(const error of ['invalid_code','rate_limited','unknown'])assert.throws(()=>b.readBetaResult({ok:false,error},'fantazia'));});
+test('malformed successful response cannot unlock access',()=>{for(const value of [null,{}, {ok:true}, {ok:'true',status:s}])assert.throws(()=>b.readBetaResult(value,'fantazia'));});
+test('server approved state passes exact game validation',()=>{assert.equal(b.readBetaResult({ok:true,status:s},'fantazia').state,'approved');});

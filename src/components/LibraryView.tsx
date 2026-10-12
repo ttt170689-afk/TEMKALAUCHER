@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import GameProperties,{GameMenu} from "./GameProperties";
 import { AnimatePresence, motion } from "framer-motion";
 import { DLC_STATUS, GAMES } from "../data/games";
 import type { Game } from "../data/games";
@@ -19,9 +20,10 @@ import {
   IconSearch,
 } from "./ui";
 
-function GameCard({ game, active, onSelect, delay }: { game: Game; active: boolean; onSelect: () => void; delay: number }) {
+function GameCard({ game, active, onSelect, delay, onProperties }: { game: Game; active: boolean; onSelect: () => void; delay: number; onProperties:()=>void }) {
   return (
     <Reveal delay={delay}>
+     <div className="relative">
       <button
         onClick={onSelect}
         onMouseMove={glareMove}
@@ -36,7 +38,7 @@ function GameCard({ game, active, onSelect, delay }: { game: Game; active: boole
           <ArtSurface game={game} className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.07]" />
           <span className="absolute inset-0 bg-gradient-to-t from-[var(--bg1)] via-[rgba(10,13,19,0.25)] to-transparent" />
           {/* in-dev watermark */}
-          <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.72)] px-2.5 py-1 text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-[var(--tx2)] backdrop-blur-sm">
+          <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(6,8,12,0.72)] px-2.5 py-1 text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-[var(--tx2)] backdrop-blur-sm">
             <IconLock /> недоступно
           </span>
           {active && (
@@ -59,6 +61,8 @@ function GameCard({ game, active, onSelect, delay }: { game: Game; active: boole
           </p>
         </div>
       </button>
+      <GameMenu game={game} onProperties={onProperties} card />
+     </div>
     </Reveal>
   );
 }
@@ -67,12 +71,15 @@ export default function LibraryView({
   selectedId,
   setSelectedId,
   query,
+  onProfile,
 }: {
   selectedId: string;
   setSelectedId: (id: string) => void;
   query: string;
+  onProfile:()=>void;
 }) {
   const { push } = useToast();
+  const [propertiesGame,setPropertiesGame]=useState<Game|null>(null);
   const [shake, setShake] = useState(false);
   const [modal, setModal] = useState(false);
   const [reqTab, setReqTab] = useState<"min" | "rec">("min");
@@ -103,6 +110,7 @@ export default function LibraryView({
 
   return (
     <div className="mx-auto max-w-[1180px] px-5 pb-14 pt-6 lg:px-8">
+      {propertiesGame&&<GameProperties key={propertiesGame.id} game={propertiesGame} onClose={()=>setPropertiesGame(null)} onProfile={onProfile} />}
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
         {/* ===== left: game list ===== */}
         <div className="flex flex-col gap-4">
@@ -124,7 +132,7 @@ export default function LibraryView({
             </Reveal>
           ) : (
             games.map((g, i) => (
-              <GameCard key={g.id} game={g} active={g.id === shownGame.id} onSelect={() => setSelectedId(g.id)} delay={i * 90} />
+              <GameCard onProperties={()=>setPropertiesGame(g)} key={g.id} game={g} active={g.id === shownGame.id} onSelect={() => setSelectedId(g.id)} delay={i * 90} />
             ))
           )}
           <Reveal delay={220}>

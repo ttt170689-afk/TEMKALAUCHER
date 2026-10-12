@@ -15,6 +15,7 @@
     "tests/updater.test.cjs": "a888f9d5ece37bb255ae77ab1d7260e501886b889a108c3f412000c1e96fd061",
     "tests/folder-picker.test.cjs": "3057eee71223203a477c08c30e4013fb55a5a9a2a105480f9ee7ec05b8470506",
     "tests/native-bundle.test.cjs": "46fca6d74e1f0b5ec38b92888bb9fa4dbf2b6c1510beb252a50554e106d114cb",
-    "README.md": "71c89448464771bc0c6e73ea409c46dc5c41175c977223feffab46356cce5203"
+    "tests/beta-contract.test.cjs": "5523dfd7d266a8c908f6616d3b9b5a3d047e0207a1b6460b1353e7ace2d05271",
+    "README.md": "3c16882e79e62c1a17f509c11ac02c3719049516561161257b42d1b5df17d70b"
   }
 }

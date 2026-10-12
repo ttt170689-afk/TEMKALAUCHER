@@ -12,7 +12,7 @@ export const TARGETS = [
  'electron/native-contract.json','electron/release-feed-contract.json',
  'src/lib/updater.ts','src/lib/version.ts','src/components/UpdateBanner.tsx',
  'tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs',
- 'tests/native-bundle.test.cjs','README.md'
+ 'tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','README.md'
 ];
 const normal = text => text.replace(/\r\n/g,'\n'); // Git may use CRLF on Windows.
 export const digest = text => crypto.createHash('sha256').update(normal(text),'utf8').digest('hex');
@@ -28,7 +28,7 @@ export function restoreNative(projectRoot,{verify=true}={}){
  const root=fs.realpathSync(projectRoot);
  const bundle=path.join(root,'native-bundle');
  const manifestPath=path.join(bundle,'manifest.json');noLinks(root,manifestPath);
- if(!fs.existsSync(manifestPath))throw Error('Native bundle missing. Import the complete 1.5.9 source ZIP, including native-bundle/ and build-tools/.');
+ if(!fs.existsSync(manifestPath))throw Error('Native bundle missing. Import the complete 1.6.0 source ZIP, including native-bundle/ and build-tools/.');
  const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
  if(manifest.protocol!==3||!manifest.files||Object.keys(manifest.files).sort().join('|')!==[...TARGETS].sort().join('|'))throw Error('Native bundle manifest is incomplete or has unexpected paths.');
  const entries=TARGETS.map(relative=>{
@@ -46,7 +46,7 @@ export function restoreNative(projectRoot,{verify=true}={}){
  console.log(`[Temka runtime] protocol 3, direct release feed; restored ${changed}/${TARGETS.length} files from source ZIP.`);
  if(verify){
   execFileSync(process.execPath,[path.join(root,'node_modules/typescript/bin/tsc'),'--noEmit'],{cwd:root,stdio:'inherit'});
-  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs'],{cwd:root,stdio:'inherit'});
+  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs'],{cwd:root,stdio:'inherit'});
   console.log('[Temka runtime] post-restore TypeScript and runtime regression tests passed.');
  }
  return {changed};

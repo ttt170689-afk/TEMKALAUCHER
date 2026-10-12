@@ -246,7 +246,7 @@ function Shell() {
                 {view === "home" && <HomeView setView={setView} openGame={openGame} />}
                 {view === "news" && <NewsView />}
                 {view === "library" && (
-                  <LibraryView selectedId={selectedId} setSelectedId={setSelectedId} query={query} />
+                  <LibraryView onProfile={()=>setView("profile")} selectedId={selectedId} setSelectedId={setSelectedId} query={query} />
                 )}
                 {view === "profile" && <ProfileView />}
                 {view === "settings" && <SettingsView />}

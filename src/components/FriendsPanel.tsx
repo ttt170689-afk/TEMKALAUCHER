@@ -1,4 +1,3 @@
-import OnlineSetupGuide from "./OnlineSetupGuide";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Account } from '../lib/auth';
 import { CloudClient, onlineEnabled, onlineAvatar } from '../lib/online';
@@ -86,6 +85,5 @@ export default function FriendsPanel({localUser}: {localUser:Account}) {
       {error&&<p className="mt-3 rounded-lg border border-red-400/30 p-3 text-[12px] text-red-300" role="alert">{error}</p>}
       {notice&&<p className="mt-3 text-[12px] text-[var(--accent)]" role="status">{notice}</p>}
     </>}
-    <OnlineSetupGuide />
   </section>;
 }
