@@ -105,18 +105,14 @@ export default function SettingsView() {
     return () => window.clearTimeout(id);
   }, [savedTick]);
 
+  useEffect(() => {
+    const on = (event: Event) => setChecking((event as CustomEvent<{phase:string}>).detail.phase === "checking");
+    window.addEventListener("temka-update-state",on);
+    return () => window.removeEventListener("temka-update-state",on);
+  }, []);
   const checkUpdates = () => {
-    // запуск встроенной проверки: плашка обновления внизу экрана покажет результат
-    window.dispatchEvent(new CustomEvent("temka-check-updates"));
     setChecking(true);
-    window.setTimeout(() => {
-      setChecking(false);
-      const w = window as unknown as { temka?: { launchUpdater?: () => Promise<boolean> } };
-      // а в десктоп-версии по желанию можно открыть и отдельный апдейтер
-      if (w.temka?.launchUpdater) {
-        push("info", "Проверка запущена", "Плашка обновления появится внизу, если найдётся новая версия.");
-      }
-    }, 900);
+    window.dispatchEvent(new CustomEvent("temka-check-updates"));
   };
 
   return (
@@ -277,7 +273,7 @@ export default function SettingsView() {
               </button>
             </div>
           </div>
-          {!desktopFolder && <p className="px-5 pb-4 text-xs text-[var(--tx3)]">Выбор папки доступен в desktop-сборке с обновлённым нативным шаблоном (Publisher 1.0.5). В браузере он недоступен.</p>}
+          {!desktopFolder && <p className="px-5 pb-4 text-xs text-[var(--tx3)]">Выбор папки доступен в desktop-сборке с обновлённым нативным шаблоном (Publisher 1.0.6). В браузере он недоступен.</p>}
           <Row title="Ограничение скорости" desc="Чтобы стримить и качать одновременно без лагов.">
             <Slider
               value={s.speedLimit}
@@ -312,11 +308,13 @@ export default function SettingsView() {
           <Row title="Всплывающие уведомления" desc="Тосты о событиях лаунчера в правом нижнем углу.">
             <Toggle on={s.notifications} onChange={(v) => set("notifications", v)} label="Уведомления" />
           </Row>
-          <Row title="Звуки интерфейса" desc="Клики, переходы и фанфары уровня — синтезируются на лету, без файлов.">
+          <Row title="Звуки интерфейса" desc="Клики, переходы и сигналы интерфейса — синтезируются на лету, без файлов.">
             <Toggle on={s.sounds} onChange={(v) => set("sounds", v)} label="Звуки" />
           </Row>
           <div className="border-t border-[var(--line)] px-5 py-4">
             <button
+              aria-label="Проверить обновления лаунчера"
+              aria-busy={checking}
               onClick={checkUpdates}
               disabled={checking}
               className="btn-primary flex items-center gap-2.5 px-5 py-2.5 text-[13px] disabled:opacity-70"

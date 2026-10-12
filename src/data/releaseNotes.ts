@@ -7,8 +7,14 @@ export const CHANGE_LABELS: Record<ChangeKind,string> = {added:'Добавлен
 // Publisher may assign a newer version; APP_VERSION keeps the entry accurate.
 // Update these notes intentionally when preparing the next release.
 export const RELEASE_NOTES: ReleaseNote[] = [
+ {version:APP_VERSION,date:'2026-10-12',current:true,title:'Проверка обновлений без ложного успеха',summary:'Сверяем GitHub, манифест и пакет. Показываем версии, источник и ошибки.',changes:[
+ {kind:'fixed',text:'Проверка публичного GitHub API и манифеста конкретного релиза без локального кеширования. Версия и файл должны совпасть.'},
+ {kind:'fixed',text:'Ошибки сети и неполный релиз больше не скрываются за сообщением о свежей версии. Панель видна даже при первой неудачной проверке.'},
+ {kind:'removed',text:'Убран таймер уведомления «Проверка запущена» и безусловное «У тебя самая свежая версия».'},
+ {kind:'added',text:'Показ установленной и опубликованной версий, времени успешной проверки и кнопка открытия официальных релизов.'}
+ ]},
   {
-    version:APP_VERSION,date:'2026-10-11',current:true,title:'Альфа без XP. Вишлист без почты.',
+    version:'1.5.5',date:'2026-10-11',title:'Альфа без XP. Вишлист без почты.',
     summary:'Упрощённый профиль, мгновенные закладки и системный выбор папки.',
     changes:[
       {kind:'removed',text:'Начисление XP, ежедневные награды, уровни и связанные с ними блокировки интерфейса отключены. Старые данные не стираются.'},
