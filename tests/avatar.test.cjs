@@ -1,0 +1,6 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('fs');const ts=require('typescript');const vm=require('node:vm');const path=require('path');
+const code=ts.transpileModule(fs.readFileSync(path.join(__dirname,'../src/lib/avatar.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const exportsObj={};vm.runInNewContext(code,{exports:exportsObj,Error});
+test('custom avatar allows only bounded raster data URIs',()=>{assert(exportsObj.isCustomAvatar('data:image/webp;base64,YWJj'));assert(exportsObj.isCustomAvatar('data:image/png;base64,YWJj'));assert(!exportsObj.isCustomAvatar('data:image/svg+xml;base64,YWJj'));assert(!exportsObj.isCustomAvatar('https://example.invalid/photo.png'));assert(!exportsObj.isCustomAvatar('data:image/png;base64,'+'A'.repeat(1000001)));});
+test('avatar rejects SVG before any decoding or upload',async()=>{await assert.rejects(exportsObj.prepareAvatar({type:'image/svg+xml',size:30}),/не поддерживаются/);});
+test('avatar rejects files larger than five MiB before decoding',async()=>{await assert.rejects(exportsObj.prepareAvatar({type:'image/png',size:5*1024*1024+1}),/5 МБ/);});

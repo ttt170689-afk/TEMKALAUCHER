@@ -1,0 +1,27 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const {EventEmitter}=require('node:events');
+const {createReleaseSource,validateRelease,validateManifest,readText}=require('../electron/release-source.cjs');
+const {createUpdateController}=require('../electron/update-controller.cjs');
+const base='https://github.com/ttt170689-afk/TEMKALAUCHER/releases/download/v1.5.5/';
+const hash=Buffer.alloc(64,42).toString('base64');const name='TemkaLauncher-Setup-1.5.5-x64.exe';
+const release={tag_name:'v1.5.5',draft:false,prerelease:false,assets:[{name:'latest.yml',browser_download_url:base+'latest.yml',size:400},{name,browser_download_url:base+name,size:123456}]};
+const file={url:name,sha512:hash,size:123456};const info={version:'1.5.5',path:name,files:[file]};
+const mock=()=>{const requests=[];return {requests,fetchImpl:async(url,options)=>{requests.push({url,options});return new Response(JSON.stringify(url.includes('api.github.com')?release:info));}};};
+test('fresh API plus pinned release manifest; metadata only, no installer download',async()=>{const f=mock();const r=await createReleaseSource({platform:'win32',fetchImpl:f.fetchImpl})();assert.equal(r.version,'1.5.5');assert.equal(r.feedUrl,base);assert.equal(f.requests.length,2);assert(f.requests.every(r=>r.url.includes('temka_check=')&&r.options.cache==='no-store'));assert(f.requests[1].url.startsWith(base+'latest.yml?'));assert.equal(r.expectedFile.sha512,hash);});
+test('new check requests metadata again rather than reusing a previous same-version result',async()=>{const f=mock(),source=createReleaseSource({platform:'win32',fetchImpl:f.fetchImpl});await source();await source();assert.equal(f.requests.length,4);assert.notEqual(f.requests[0].url,f.requests[2].url);});
+test('missing installer/manifest, draft and prerelease are failures',()=>{for(const value of [{...release,assets:[]},{...release,draft:true},{...release,prerelease:true},{...release,tag_name:'v1.5.6-beta'}])assert.throws(()=>validateRelease(value,'win32'));});
+test('Linux requires its own assets, not a Windows-only release',()=>assert.throws(()=>validateRelease(release,'linux')));
+test('foreign download URL rejected',()=>{const bad=structuredClone(release);bad.assets[1].browser_download_url='https://example.com/payload.exe';assert.throws(()=>validateRelease(bad,'win32'));});
+test('mismatched version, wrong hash, unsafe file URL and wrong size rejected',()=>{const r=validateRelease(release,'win32');for(const value of [{...info,version:'1.5.3'},{...info,files:[{...file,sha512:'bad'}]},{...info,files:[{...file,url:'https://evil.invalid/p.exe'}]},{...info,files:[{...file,size:1}]}])assert.throws(()=>validateManifest(JSON.stringify(value),r));});
+test('403 and invalid JSON do not become no-updates success',async()=>{await assert.rejects(createReleaseSource({fetchImpl:async()=>new Response('denied',{status:403})})(),/403/);await assert.rejects(createReleaseSource({fetchImpl:async()=>new Response('not JSON')})(),/JSON/);});
+test('response size bounded',async()=>await assert.rejects(readText('https://example.invalid',{maxBytes:10,fetchImpl:async()=>new Response('a'.repeat(100))}),/большой/));
+function controller(engineVersion='1.5.5',current='1.5.3') {const updater=new EventEmitter();let feed,downloads=0,checks=0;updater.setFeedURL=f=>feed=f;updater.checkForUpdates=async()=>{checks++;return {updateInfo:{...info,version:engineVersion}}};updater.downloadUpdate=async()=>{downloads++};const f=mock();const c=createUpdateController({updater,version:current,enabled:true,send:()=>{},resolveRelease:createReleaseSource({platform:'win32',fetchImpl:f.fetchImpl})});return {c,updater,counts:()=>({feed,downloads,checks})};}
+test('regression: installed 1.5.3 sees published 1.5.5 and pins its feed',async()=>{const f=controller();const r=await f.c.check();assert.equal(r.available,true);assert.equal(r.current,'1.5.3');assert.equal(r.latest,'1.5.5');assert.equal(f.counts().feed.url,base);assert.equal(f.counts().downloads,0);});
+test('stale engine 1.5.3 contradicting GitHub 1.5.5 is an error, not latest',async()=>{const f=controller('1.5.3');const r=await f.c.check();assert.equal(r.ok,false);assert.match(r.error,/не подтвердил/);});
+test('changed checksum between probe and engine is rejected',async()=>{const f=controller();f.updater.checkForUpdates=async()=>({updateInfo:{...info,files:[{...file,sha512:Buffer.alloc(64).toString('base64')}]}});assert.equal((await f.c.check()).ok,false);});
+test('same and ahead versions are explicit, no downgrade or download',async()=>{for(const [current,comparison] of [['1.5.5','same'],['1.5.6','ahead']]){const f=controller('1.5.5',current);const r=await f.c.check();assert.equal(r.available,false);assert.equal(r.comparison,comparison);assert.equal(f.counts().checks,0);}});
+test('Linux manifest can include AppImage and deb together',()=>{
+ const image='TemkaLauncher-1.5.5-x64.AppImage',deb='TemkaLauncher-1.5.5-amd64.deb';
+ const r=validateRelease({...release,assets:[{name:'latest-linux.yml',browser_download_url:base+'latest-linux.yml',size:400},...[image,deb].map(name=>({name,browser_download_url:base+name,size:123456}))]},'linux');
+ assert.equal(validateManifest(JSON.stringify({version:'1.5.5',path:deb,files:[{...file,url:image},{...file,url:deb}]}),r).files.length,2);
+});
+test('duplicate files are not accepted',()=>assert.throws(()=>validateManifest(JSON.stringify({...info,files:[file,file]}),validateRelease(release,'win32'))));

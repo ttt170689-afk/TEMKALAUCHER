@@ -48,7 +48,7 @@ const path = require('node:path');
     const labels = ['Главная', 'Новости', 'Библиотека', 'Профиль', 'Настройки'];
     for (const label of labels) await page.getByRole('button', { name: label, exact: true }).waitFor({ state: 'visible' });
     await page.getByRole('button', { name: 'Профиль', exact: true }).click();
-    const profileName = page.locator('input[maxlength="25"]');
+    const profileName = page.locator('input[maxlength="25"]').last();
     await profileName.waitFor();
     assert.equal(await profileName.inputValue(), nick);
     const renamed = 'temka_play_official_65432';
@@ -59,6 +59,18 @@ const path = require('node:path');
       const store = JSON.parse(localStorage.getItem('temka-accounts-v1') || '{}');
       return store.users?.some(user => user.id === store.session && user.username === expected);
     }, renamed);
+    if (await page.getByLabel('Загрузить свою аватарку', { exact: true }).count()) {
+    phase('custom avatar upload and persistence');
+    await page.getByLabel('Загрузить свою аватарку', { exact: true }).setInputFiles(path.resolve(__dirname, '..', 'assets', 'icon.png'));
+    await page.waitForFunction(() => {
+      const store = JSON.parse(localStorage.getItem('temka-accounts-v1') || '{}');
+      return store.users?.find(u => u.id === store.session)?.profile.avatar?.startsWith('data:image/webp;base64,');
+    });
+    await page.reload();
+    await page.getByRole('button', { name: 'Профиль', exact: true }).click();
+    await page.getByRole('img', { name: 'Аватар игрока', exact: true }).first().waitFor();
+    assert(await page.getByRole('img', { name: 'Аватар игрока', exact: true }).count() >= 2);
+    }
     phase('compact settings and error reporting');
     await page.getByRole('button', { name: 'Настройки', exact: true }).click();
     await page.getByText('Настройки лаунчера', { exact: true }).waitFor();

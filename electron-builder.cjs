@@ -7,6 +7,13 @@ module.exports = {
   asar: true,
   npmRebuild: false,
   publish: [{ provider: 'github', owner: 'ttt170689-afk', repo: 'TEMKALAUCHER', releaseType: 'release' }],
+  linux: {
+    target: [{ target: 'AppImage', arch: ['x64'] }, { target: 'deb', arch: ['x64'] }],
+    category: 'Game', icon: 'assets/icon.png',
+    executableName: 'temkalauncher', maintainer: 'Temka Studio',
+    artifactName: 'TemkaLauncher-${version}-${arch}.${ext}',
+    synopsis: 'Temka Studio game launcher'
+  },
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     icon: 'assets/icon.png',

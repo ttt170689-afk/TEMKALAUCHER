@@ -1,8 +1,10 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog, session } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog, session, net } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { createFolderPicker } = require('./folder-picker.cjs');
 const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
+const { createReleaseSource } = require('./release-source.cjs');
 const { createUpdateController } = require('./update-controller.cjs');
 
 log.initialize();
@@ -15,7 +17,9 @@ let tray = null;
 let forceQuit = false;
 const updates = createUpdateController({
   updater: autoUpdater, version: app.getVersion(),
-  enabled: app.isPackaged && process.platform === 'win32',
+  resolveRelease: createReleaseSource({fetchImpl:(url,options)=>net.fetch(url,options)}),
+  enabled: app.isPackaged && (process.platform === 'win32' || (process.platform === 'linux' && !!process.env.APPIMAGE)),
+  disabledReason: process.platform === 'linux' ? 'Автообновления Linux доступны для запущенного AppImage. Пакет .deb обновляется установкой нового пакета из GitHub Releases.' : undefined,
   send: state => { if (win && !win.isDestroyed()) win.webContents.send('update:progress', state); },
   beforeInstall: () => { forceQuit = true; }
 });
@@ -35,6 +39,8 @@ handle('update:check', () => updates.check());
 handle('update:install', () => updates.install());
 handle('update:relaunch', () => updates.relaunch());
 handle('launch-updater', () => { showWindow(); win.webContents.send('temka-check-updates'); return true; });
+const folderPicker = createFolderPicker({dialog,getWindow:()=>win,getDefaultPath:()=>app.getPath('documents')});
+handle('folder:choose', currentPath => folderPicker.choose(currentPath));
 handle('app-quit', () => { forceQuit = true; app.quit(); });
 
 function showWindow() {
@@ -79,7 +85,8 @@ function createWindow() {
   });
   win.on('close', event => {
     // If the tray could not be created, the close button must still close the app.
-    if (!forceQuit && tray) { event.preventDefault(); win.hide(); }
+    if (!forceQuit && tray && process.platform === 'win32') { event.preventDefault(); win.hide(); }
+    if (process.platform === 'linux') forceQuit = true;
   });
   win.on('closed', () => { win = null; });
 }
@@ -109,6 +116,6 @@ if (!app.requestSingleInstanceLock()) {
     createTray(); createWindow();
   }).catch(error => { log.error(error); dialog.showErrorBox('TemkaLauncher', error.message); app.quit(); });
   app.on('activate', showWindow);
-  app.on('window-all-closed', () => { if (!tray) app.quit(); });
+  app.on('window-all-closed', () => { if (!tray || process.platform === 'linux') app.quit(); });
   app.on('before-quit', () => { forceQuit = true; });
 }

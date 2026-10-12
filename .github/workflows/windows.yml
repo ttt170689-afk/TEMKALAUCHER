@@ -27,6 +27,11 @@ concurrency:
   group: windows-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # Public client configuration only. NEVER use service_role or sb_secret keys here.
+  VITE_TEMKA_SUPABASE_URL: ${{ vars.TEMKA_SUPABASE_URL }}
+  VITE_TEMKA_SUPABASE_ANON_KEY: ${{ vars.TEMKA_SUPABASE_ANON_KEY }}
+
 jobs:
   build:
     runs-on: windows-latest
@@ -75,9 +80,53 @@ jobs:
             release/latest.yml
             package.json
 
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify requested version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: node -e "if(process.env.REQUESTED_VERSION && process.env.REQUESTED_VERSION!==require('./package.json').version) process.exit(1)"
+      - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: npm ci
+      - name: Install Linux runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libfuse2 libx11-xcb1 libatk-bridge2.0-0
+      - run: npm test
+      - run: npm run build
+      - name: Linux Electron smoke (isolated CI only)
+        run: xvfb-run -a npm run test:smoke
+      - name: Upload Linux smoke failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-smoke-linux-diagnostics
+          if-no-files-found: ignore
+          path: test-results/electron-smoke/**
+      - name: Build AppImage and Debian package
+        run: npx electron-builder --config electron-builder.cjs --linux AppImage deb --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: npm run verify:linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TemkaLauncher-Linux-x64
+          if-no-files-found: error
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/latest-linux.yml
+
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: build
+    needs: [build, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -86,6 +135,10 @@ jobs:
         with:
           name: TemkaLauncher-Windows-x64
           path: artifact
+      - uses: actions/download-artifact@v4
+        with:
+          name: TemkaLauncher-Linux-x64
+          path: linux-artifact
       - name: Publish complete release (never overwrite a released version)
         shell: bash
         env:
@@ -104,6 +157,7 @@ jobs:
             echo "Release already exists. Bump package.json version; do not overwrite updates."; exit 1
           fi
           gh release create "$TAG" artifact/release/*.exe artifact/release/*.exe.blockmap artifact/release/latest.yml \
+            linux-artifact/*.AppImage linux-artifact/*.deb linux-artifact/latest-linux.yml \
             --draft --target "$COMMIT" --title "TemkaLauncher $VERSION" \
-            --notes "Windows 10/11 x64. Install the Setup EXE. Existing installations download updates automatically."
+            --notes "Windows 10/11 x64: Setup EXE. Linux x64: AppImage or Debian package. Windows and AppImage support automatic updates; .deb is updated manually. Custom avatars and optional online friends (server setup required)."
           gh release edit "$TAG" --draft=false --latest
