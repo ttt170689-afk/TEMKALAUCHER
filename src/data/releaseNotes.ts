@@ -7,7 +7,12 @@ export const CHANGE_LABELS: Record<ChangeKind,string> = {added:'Добавлен
 // Publisher may assign a newer version; APP_VERSION keeps the entry accurate.
 // Update these notes intentionally when preparing the next release.
 export const RELEASE_NOTES: ReleaseNote[] = [
- {version:APP_VERSION,date:'2026-10-12',current:true,title:'Обновления без зависимости от GitHub API',summary:'Убрана причина отказа проверки при лимите API. Читаем манифесты прямо из релиза.',changes:[
+ {version:APP_VERSION,date:'2026-10-12',current:true,title:'Исправлена сборка через Publisher',summary:'Нативный код сохраняется в комплекте исходников и восстанавливается перед сборкой.',changes:[
+ {kind:'fixed',text:'Publisher 1.0.6 и 1.0.7 больше не могут незаметно заменить прямую проверку обновлений старым API-шаблоном.'},
+ {kind:'added',text:'Проверка комплектности и SHA-256 исходных файлов, восстановление desktop-кода, повторный TypeScript-контроль и тесты обновления перед упаковкой.'},
+ {kind:'removed',text:'Зависимость первичной проверки TypeScript от файла, который старый шаблон Publisher не содержит.'}
+ ]},
+ {version:'1.5.8',date:'2026-10-12',title:'Обновления без зависимости от GitHub API',summary:'Убрана причина отказа проверки при лимите API. Читаем манифесты прямо из релиза.',changes:[
  {kind:'removed',text:'Обязательный запрос к api.github.com при проверке обновлений. Токен GitHub пользователям не нужен.'},
  {kind:'fixed',text:'Сверяются latest.yml и манифест конкретного тега. Размер и SHA-512 проверяются; доступность установщика проверяется HEAD-запросом без скачивания EXE.'},
  {kind:'added',text:'В панели указан прямой источник GitHub Releases. Если заблокирован сам файловый хостинг, остаётся понятная ошибка вместо ложного успеха.'}

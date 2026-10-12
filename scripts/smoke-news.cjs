@@ -42,7 +42,7 @@ const os=require('node:os');
   check('Clipboard denial offers manual copying',await page.getByLabel('SQL для нового проекта',{exact:true}).isVisible());
   await page.getByRole('button',{name:'Новости',exact:true}).click();
   await page.getByRole('heading',{name:'Что нового?',exact:true}).waitFor();
-  check('History contains six build notes',await page.locator('[data-release]').count()===6);
+  check('History contains seven build notes',await page.locator('[data-release]').count()===7);
   check('Current history version matches package',await page.locator(`[data-release="${require('../package.json').version}"]`).count()===1);
   check('Fake first-news subscription removed',await page.getByRole('button',{name:'Сообщить о первой новости'}).count()===0);
   for(const [name,kind] of [['Добавлено','added'],['Исправлено','fixed'],['Убрано','removed']]){
@@ -53,7 +53,7 @@ const os=require('node:os');
   check('Search by version works',await page.locator('[data-release]').count()===1&&await page.locator('[data-release]').getAttribute('data-release')==='1.5.3');
   await page.getByRole('searchbox',{name:'Поиск по изменениям'}).fill('Ничего_такого_нет');await page.getByRole('heading',{name:'Ничего не найдено'}).waitFor();
   check('No search matches has an honest empty state',await page.locator('[data-release]').count()===0);
-  await page.getByRole('button',{name:'Сбросить фильтры'}).click();check('Reset restores all notes',await page.locator('[data-release]').count()===6);
+  await page.getByRole('button',{name:'Сбросить фильтры'}).click();check('Reset restores all notes',await page.locator('[data-release]').count()===7);
   if(process.env.TEMKA_SCREENSHOTS){fs.mkdirSync(process.env.TEMKA_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.TEMKA_SCREENSHOTS,'news-154.png')});}
   await page.setViewportSize({width:980,height:700});check('News does not overflow compact viewport',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.reload();await page.getByRole('button',{name:'Профиль',exact:true}).click();await badge.waitFor();

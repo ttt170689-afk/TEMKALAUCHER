@@ -1,0 +1,20 @@
+{
+  "protocol": 3,
+  "files": {
+    "electron/main.cjs": "cc9df6429fcd1e320fb62f348c2137c9d24da6254f2cbc3d39b002df411d41ce",
+    "electron/preload.cjs": "2684b904d9bbb757284f2654387a6e65ccc202b1330b65a1768ebca76c1b5a18",
+    "electron/update-controller.cjs": "4b9929e96b67ebb6e1a5e6d4d183a7606a0dbdb4301e6c165ee85158ba1303a8",
+    "electron/release-source.cjs": "cbc8e1db7f5876036c8a18d34f4488bda8cc8c38ca84d29fc350faec3a481be7",
+    "electron/folder-picker.cjs": "ff3ecf36ed2bed40d078c23d7fa6f080bc12b5180ef5644e9ce8fb92e2197fe5",
+    "electron/native-contract.json": "7b233b84835cffec67d7dddb86e351fc56f85a5cd267fb531285ee556104a405",
+    "electron/release-feed-contract.json": "7b233b84835cffec67d7dddb86e351fc56f85a5cd267fb531285ee556104a405",
+    "src/lib/updater.ts": "60e4d8dd43e2f3732de0783b83c08f6b4c9c54797073c6d6ed6315ad3a6dd362",
+    "src/lib/version.ts": "53e4935b960c03622d2d0c971ffcc802bcd4ab1284e5b7adc5c4dd004eea7ba1",
+    "src/components/UpdateBanner.tsx": "5f26a2777dbd0d79020f5516af858ef4a72f15e3e3e322649cfc6d751c2fcd91",
+    "tests/release-source.test.cjs": "0d3729b8cf78cc3ba7eabbb9de6d2bdf332812f60285973ab46c66170227a83e",
+    "tests/updater.test.cjs": "a888f9d5ece37bb255ae77ab1d7260e501886b889a108c3f412000c1e96fd061",
+    "tests/folder-picker.test.cjs": "3057eee71223203a477c08c30e4013fb55a5a9a2a105480f9ee7ec05b8470506",
+    "tests/native-bundle.test.cjs": "46fca6d74e1f0b5ec38b92888bb9fa4dbf2b6c1510beb252a50554e106d114cb",
+    "README.md": "71c89448464771bc0c6e73ea409c46dc5c41175c977223feffab46356cce5203"
+  }
+}

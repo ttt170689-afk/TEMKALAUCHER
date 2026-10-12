@@ -1,3 +1,4 @@
-// Old Publisher templates must fail at build time, not replace the fixed updater.
-import contract from '../../electron/release-feed-contract.json';
-if(contract.protocol<3)throw Error('Нужен native-шаблон Publisher 1.0.7.');
+// Typecheck reads the preserved source bundle. vite.config.js then restores
+// and validates the real native runtime before bundling/packaging.
+import contract from '../../native-bundle/electron/release-feed-contract.json';
+if(contract.protocol<3)throw Error('Повреждён комплект desktop-кода. Используйте полный ZIP.');
