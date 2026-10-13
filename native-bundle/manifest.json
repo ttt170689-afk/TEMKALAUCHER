@@ -16,15 +16,15 @@
     "tests/folder-picker.test.cjs": "3057eee71223203a477c08c30e4013fb55a5a9a2a105480f9ee7ec05b8470506",
     "tests/native-bundle.test.cjs": "46fca6d74e1f0b5ec38b92888bb9fa4dbf2b6c1510beb252a50554e106d114cb",
     "tests/beta-contract.test.cjs": "5523dfd7d266a8c908f6616d3b9b5a3d047e0207a1b6460b1353e7ace2d05271",
-    "README.md": "d2d6fb97ed9abe7755a504b05dd405feaaa12cb6a2306ed54fea3b6c88efd0a6",
-    "scripts/smoke-electron.cjs": "2e8501a390a8d3ca19f565f9f5dfad1201f2a8a61aef2ab66a9d98b3694fd1db",
+    "README.md": "f72d68d2560caee8173d58b31e285d2ff850810606b05cc85285deaa213ba05d",
+    "scripts/smoke-electron.cjs": "5a147ff292dfc2e0556cfca9a92ce08102f1f5c05e1d9d181c6e532ddcd6d787",
     "tests/ci-smoke.test.cjs": "83411208af1cae3890ca288c79311701b32e608b926be81c2507d13eb723f9c2",
     "electron/clipboard.cjs": "bc266d0623bbaf973b7b3d02275d98f26972fd4db53034075b06c9113502ba33",
     "src/lib/clipboard.ts": "f6dd68ea19ccc498a1bbd38feebe75c374a302359d0cadb351eb8f26edae4eb6",
     "tests/clipboard.test.cjs": "128d967814f669a7b22e54428cb72cdf2d11add4f572056aeba70439b4590791",
     "src/lib/playerCard.ts": "aceffb4363cd7395eb013523bb2967ad4c8badc21b2770d2a9acde908d24d638",
-    "tests/player-card.test.cjs": "1cde2ffd10b17febc978f3d89d6a9b33fa28fbaaa675b5eb468e3fe8f572ddc6",
-    "CHANGELOG.md": "1efc691b67bdb4da1765d83ecb015ad3d1eb8730e8ce4edd84b8034e5ec60a33",
-    "TEST-REPORT.md": "017075aaa12a8babe7aff55cdfd01e09e15a78013ea34aa55bf43b2ce5d080c8"
+    "tests/player-card.test.cjs": "fa93bc35928c14fbb4a4fab33e6c549ef3bf750df25a4bf5916b61c9142db25c",
+    "CHANGELOG.md": "c3e19a15ec0bbc41ace53f6de53f6566947a5cec2321be8bf2c8900de25e93e1",
+    "TEST-REPORT.md": "d69bbf396a4c20295a4a8e085c385cbccb90a01baae2a5b9d27b7b3e933f2e89"
   }
 }
