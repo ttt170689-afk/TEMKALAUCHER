@@ -1,3 +1,5 @@
+import {CloudClient,getCloudClient,onlineSessionKey,notifyOnline} from "./online";
+import {commitEntry,saveAccountSession} from "./entryAccount";
 import { validateUsernameLength } from "./username";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -10,13 +12,14 @@ export interface Profile {
 }
 export interface Account {
   id: string;
+  onlineUserId?: string;
   username: string;
   email: string;
   passHash: string;
   createdAt: string;
   profile: Profile;
 }
-interface Store {
+export interface Store {
   users: Account[];
   session: string | null;
 }
@@ -67,6 +70,7 @@ interface Ctx {
   user: Account | null;
   register: (username: string, email: string, pass: string) => Promise<string | null>;
   login: (ident: string, pass: string) => Promise<string | null>;
+  enterOnline: (client: CloudClient) => Promise<void>;
   logout: () => string | null;
   updateProfile: (patch: Partial<Profile>) => string | null;
   rename: (username: string) => string | null;
@@ -115,7 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const acc = store.users.find(
         (u) => u.username.toLowerCase() === idf || u.email.toLowerCase() === idf
       );
-      if (!acc) return "Аккаунт не найден. Проверьте ник или почту.";
+      if (!acc) return "Локальный профиль на этом устройстве не найден. Для общего аккаунта вернись ко входу по почте.";
+      if(!acc.passHash)return "Этот аккаунт использует код из письма. Вернись ко входу по почте.";
       const h = await hash(pass);
       if (h !== acc.passHash) return "Неверный пароль. Попробуйте ещё раз.";
       return persist({ ...store, session: acc.id });
@@ -123,9 +128,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [store, persist]
   );
 
-  const logout = useCallback(() => {
-    return persist({ ...store, session: null });
-  }, [store, persist]);
+  const enterOnline = useCallback(async (client: CloudClient) => {
+    const identity=await client.confirmedIdentity();
+    const profile=await client.ownProfile();
+    if(!profile || !client.session || client.session.user.id!==identity.id)throw Error('Сначала выбери юзернейм или повтори вход.');
+    const next=commitEntry(localStorage,onlineSessionKey,identity,profile,client.session);
+    const target=getCloudClient(next.session!);target.reloadSession();notifyOnline(next.session!);
+    client.clearTransient();setStore(next);
+  },[]);
+
+  const endSession = useCallback((remove=false):string|null => {
+    if(!store.session)return null;
+    const client=getCloudClient(store.session),uid=client.session?.user.id;
+    const users=store.users.map(u=>u.id===store.session && uid && !u.onlineUserId?{...u,onlineUserId:uid}:u);
+    const next={users:remove?users.filter(u=>u.id!==store.session):users,session:null};
+    try {saveAccountSession(localStorage,next,onlineSessionKey(store.session),null);}
+    catch(error){return error instanceof Error?error.message:'Не удалось выйти из аккаунта.';}
+    setStore(next);
+    // Local credentials are already removed even if remote revocation is offline.
+    void client.logout().catch(()=>{client.reloadSession();notifyOnline(store.session!);});
+    return null;
+  },[store]);
+  const logout = useCallback(()=>endSession(),[endSession]);
 
   const updateProfile = useCallback(
     (patch: Partial<Profile>) => {
@@ -161,10 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [store, persist]
   );
 
-  const deleteAccount = useCallback(() => {
-    if (!store.session) return null;
-    return persist({ users: store.users.filter((u) => u.id !== store.session), session: null });
-  }, [store, persist]);
+  const deleteAccount = useCallback(()=>endSession(true),[endSession]);
 
   const user = useMemo(
     () => store.users.find((u) => u.id === store.session) ?? null,
@@ -172,8 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, register, login, logout, updateProfile, rename, deleteAccount }),
-    [user, register, login, logout, updateProfile, rename, deleteAccount]
+    () => ({ user, register, login, enterOnline, logout, updateProfile, rename, deleteAccount }),
+    [user, register, login, enterOnline, logout, updateProfile, rename, deleteAccount]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

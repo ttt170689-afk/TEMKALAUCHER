@@ -18,4 +18,4 @@ export function readPlayerCard(value:unknown,expectedId:string):PlayerCard{
 }
 export function formatPlaytime(seconds:number|null|undefined){if(seconds==null)return 'Нет данных';if(seconds<60)return seconds===0?'0 мин':'Меньше минуты';if(seconds<3600)return `${Math.floor(seconds/60)} мин`;return `${Math.floor(seconds/3600)} ч ${Math.floor(seconds%3600/60)} мин`;}
 export function openPlayerProfile(id:string){if(uuid.test(id))window.dispatchEvent(new CustomEvent('temka-open-player',{detail:{id}}));}
-export function playerError(error:unknown){const text=error instanceof Error?error.message:String(error);return /PGRST202|schema cache|Could not find the function|does not exist/i.test(text)?'Обновление профилей ещё не подключено на сервере. Сообщи temka_play_official.':text;}
+export function playerError(error:unknown){const text=error instanceof Error?error.message:String(error);return /PGRST202|schema cache|Could not find the function|does not exist/i.test(text)?'Обновление онлайн-функций ещё не подключено на сервере. Сообщи temka_play_official.':text;}

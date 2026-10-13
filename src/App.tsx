@@ -1,3 +1,5 @@
+import ActivityTracker from './components/ActivityTracker';
+import {MessagesProvider,MessagesButton} from './components/Messages';
 import PlayerProfileHost from "./components/PlayerProfile";
 import "./lib/nativeContract";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -179,7 +181,7 @@ function Shell() {
 
       {user && (
         <OnlineAccountProvider key={user.id} localId={user.id}>
-        <PlayerProfileHost/>
+        <MessagesProvider><ActivityTracker/><PlayerProfileHost/>
 
       <div className="relative z-10 flex min-h-0 flex-1">
         <Sidebar view={view} setView={setView} />
@@ -206,7 +208,7 @@ function Shell() {
               />
             </div>
 
-            <FriendNotifications key={user.id} localId={user.id} onProfile={() => setView("profile")} onFriends={()=>setView("friends")} />
+            <MessagesButton/><FriendNotifications key={user.id} localId={user.id} onProfile={() => setView("profile")} onFriends={()=>setView("friends")} />
 
             {user && (
               <button onClick={() => setView("profile")} className="hidden items-center gap-2.5 rounded-full transition-opacity hover:opacity-85 sm:flex" aria-label="Открыть профиль">
@@ -259,7 +261,7 @@ function Shell() {
         </div>
       </div>
           <UpdateOverlay />
-        </OnlineAccountProvider>
+        </MessagesProvider></OnlineAccountProvider>
       )}
 
       

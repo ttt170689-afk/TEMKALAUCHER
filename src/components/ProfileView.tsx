@@ -1,3 +1,4 @@
+import PlayerActivity from './PlayerActivity';
 import {useOnlineAccount} from '../lib/onlineAccount';
 import { hasLocalCreatorSignature, LOCAL_CREATOR_SIGNATURE_NOTE } from "../lib/creatorIdentity";
 import OnlineIdentity from "./OnlineIdentity";
@@ -74,7 +75,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
   };
 
   return (
-    <div className="mx-auto max-w-[1000px] px-5 pb-14 pt-6 lg:px-8">
+    <div className="profile-page mx-auto max-w-[1000px] px-5 pb-14 pt-6 lg:px-8">
       {/* ===== карточка игрока ===== */}
       <Reveal>
         <div onMouseMove={glareMove} className="with-glare panel relative overflow-hidden p-6 sm:p-8" style={{ borderRadius: 18 }}>
@@ -130,9 +131,10 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
       </Reveal>
 
       <FriendsPanel key={user.id} localUser={user} onFriends={onFriends} />
+      {online.mode==='verified'&&online.profile&&<div className="panel mt-5 px-5 py-2"><PlayerActivity id={online.profile.id} detailed/></div>}
 
       {/* ===== кастомизация ===== */}
-      <div className="mt-8 grid gap-5 lg:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Reveal delay={80}>
           <div className="panel flex h-full flex-col p-6">
             <p className="font-mono2 text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">внешность</p>
@@ -147,7 +149,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
               >
                 <AvatarSvg variant={p.avatar} color={p.color} size={76} />
               </div>
-              <p className="max-w-[26ch] text-[12px] leading-relaxed text-[var(--tx3)]">
+              <p className="min-w-0 flex-1 max-w-[26ch] text-[12px] leading-relaxed text-[var(--tx3)]">
                 Аватар виден в профиле, сайдбаре и шапке лаунчера. Обновляется мгновенно.
               </p>
             </div>
@@ -161,7 +163,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
             </div>
             <p className="mt-2 text-[11px] text-[var(--tx3)]">PNG, JPG, WebP до 5 МБ. Обрезка до 512×512. {share?'При выборе нового фото оно сохраняется и онлайн: его увидят другие игроки. Онлайн-фото хранится по публичной ссылке.':'Сейчас фото остаётся только на устройстве. Для онлайн-аватарки сначала войди и сохрани юзернейм.'}</p>
             <p className="mt-5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Вариант</p>
-            <div className="mt-2.5 grid grid-cols-8 gap-2">
+            <div className="mt-2.5 grid grid-cols-4 gap-2 sm:grid-cols-8">
               {AVATAR_VARIANTS.map((v) => (
                 <button
                   key={v}
@@ -180,7 +182,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
             </div>
 
             <p className="mt-5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Цвет</p>
-            <div className="mt-2.5 flex gap-2.5">
+            <div className="mt-2.5 flex flex-wrap gap-2.5">
               {AVATAR_COLORS.map((c) => (
                 <button
                   key={c}
@@ -209,7 +211,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
               </h2>
               <label className="mt-4 block">
                 <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Имя на устройстве · {nameDraft.length}/{USERNAME_MAX_LENGTH}</span>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input aria-label="Имя на устройстве" className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]" value={nameDraft} maxLength={USERNAME_MAX_LENGTH} onChange={(e) => setNameDraft(e.target.value)} />
                   <button onClick={saveName} className="btn-primary flex-none px-4 py-2.5 text-[12.5px]" disabled={nameDraft.trim() === user.username}>
                     Сохранить имя
@@ -218,7 +220,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
               </label>
               <label className="mt-3.5 block">
                 <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Статус</span>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]"
                     value={statusDraft}

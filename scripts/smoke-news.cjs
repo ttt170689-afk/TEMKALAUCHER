@@ -12,7 +12,7 @@ const os=require('node:os');
  try {
   const page=await app.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(30000);
   await page.setViewportSize({width:1280,height:900});
-  await page.getByPlaceholder('Temka_Игрок').fill('temka_play_official');
+  await page.getByRole('button',{name:'Локальный режим',exact:true}).click();await page.getByPlaceholder('Temka_Игрок').fill('temka_play_official');
   await page.getByPlaceholder('you@example.com').fill('owner-test@example.invalid');
   await page.locator('input[type=password]').nth(0).fill('TestOnly123!');await page.locator('input[type=password]').nth(1).fill('TestOnly123!');
   await page.getByRole('button',{name:/Принимаю правила/}).click();await page.getByRole('button',{name:/Создать аккаунт/}).click();

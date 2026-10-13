@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog, session, net, clipboard } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { createTrackedGames } = require('./tracked-game.cjs');
 const { createFolderPicker } = require('./folder-picker.cjs');
 const { createClipboardWriter } = require('./clipboard.cjs');
 const log = require('electron-log');
@@ -43,6 +44,10 @@ handle('launch-updater', () => { showWindow(); win.webContents.send('temka-check
 const folderPicker = createFolderPicker({dialog,getWindow:()=>win,getDefaultPath:()=>app.getPath('documents')});
 handle('folder:choose', currentPath => folderPicker.choose(currentPath));
 handle('clipboard:write-text', createClipboardWriter(clipboard));
+const trackedGames=createTrackedGames({BrowserWindow,getParent:()=>win,emit:state=>{if(win&&!win.isDestroyed())win.webContents.send('game:state',state);}});
+handle('game:open', game=>trackedGames.open(game));
+handle('game:current', ()=>trackedGames.current());
+handle('game:close', ()=>trackedGames.close());
 handle('app-quit', () => { forceQuit = true; app.quit(); });
 
 function showWindow() {
@@ -58,7 +63,7 @@ function createWindow() {
     icon: iconPath, show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
-      contextIsolation: true, sandbox: true, nodeIntegration: false,
+      backgroundThrottling: false, contextIsolation: true, sandbox: true, nodeIntegration: false,
       webSecurity: true
     }
   });
@@ -119,5 +124,5 @@ if (!app.requestSingleInstanceLock()) {
   }).catch(error => { log.error(error); dialog.showErrorBox('TemkaLauncher', error.message); app.quit(); });
   app.on('activate', showWindow);
   app.on('window-all-closed', () => { if (!tray || process.platform === 'linux') app.quit(); });
-  app.on('before-quit', () => { forceQuit = true; });
+  app.on('before-quit', () => { forceQuit = true; trackedGames.close(); });
 }

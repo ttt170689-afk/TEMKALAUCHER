@@ -1,11 +1,10 @@
-import {copyText} from '../lib/clipboard';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {Game} from '../data/games';
 import {useOnlineAccount} from '../lib/onlineAccount';
 import {onlineEnabled} from '../lib/online';
 import {BETA_LABELS} from '../lib/betaContract';
-import type {BetaStatus,BetaRequest,BetaCode,IssuedBetaCode} from '../lib/betaContract';
+import type {BetaStatus} from '../lib/betaContract';
 import './game-properties.css';
 
 export function GameMenu({game,onProperties,card=false}:{game:Game;onProperties:()=>void;card?:boolean}){
@@ -16,26 +15,21 @@ export function GameMenu({game,onProperties,card=false}:{game:Game;onProperties:
  </div>;
 }
 export default function GameProperties({game,onClose,onProfile}:{game:Game;onClose:()=>void;onProfile:()=>void}){
- const {client,mode,profile:identity,error:accountError,refresh:refreshAccount}=useOnlineAccount();
- const [tab,setTab]=useState<'about'|'beta'|'admin'>('about');const [status,setStatus]=useState<BetaStatus|null>(null);
- const [admin,setAdmin]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [code,setCode]=useState('');const [notice,setNotice]=useState('');
- const [requests,setRequests]=useState<BetaRequest[]>([]);const [codes,setCodes]=useState<BetaCode[]>([]);const [issued,setIssued]=useState<IssuedBetaCode|null>(null);
- const [approval,setApproval]=useState(true);const [limit,setLimit]=useState(1);const [hours,setHours]=useState(72);
+ const {client,mode,error:accountError,refresh:refreshAccount}=useOnlineAccount();
+ const [tab,setTab]=useState<'about'|'beta'>('about');const [status,setStatus]=useState<BetaStatus|null>(null);
+ const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [code,setCode]=useState('');const [notice,setNotice]=useState('');
  const panel=useRef<HTMLDivElement>(null),alive=useRef(true),lock=useRef(false),closeRef=useRef(onClose);closeRef.current=onClose;
  const operation=useRef(0);
  const connected=onlineEnabled&&mode==='verified';
  const me=client.session?.user.id;
- const mayManage=connected&&identity?.is_creator===true&&admin;
  async function run(job:()=>Promise<void>){if(lock.current)return;const op=++operation.current;lock.current=true;setBusy(true);setError('');setNotice('');try{await job();}catch(e){if(alive.current&&op===operation.current)setError(e instanceof Error?e.message:'Не удалось связаться с сервером.');}finally{if(op===operation.current){lock.current=false;if(alive.current)setBusy(false);}}}
- async function refresh(){const op=operation.current,uid=client.session?.user.id;setStatus(null);const [profile,value]=await Promise.all([client.ownProfile(),client.betaStatus(game.id)]);if(alive.current&&op===operation.current&&uid===client.session?.user.id){setAdmin(profile?.is_creator===true);setStatus(value);}}
- async function loadAdmin(){const op=operation.current,uid=client.session?.user.id;const [r,c]=await Promise.all([client.betaRequests(game.id),client.betaCodes(game.id)]);if(alive.current&&op===operation.current&&uid===client.session?.user.id){setRequests(r);setCodes(c);}}
+ async function refresh(){const op=operation.current,uid=client.session?.user.id;setStatus(null);const value=await client.betaStatus(game.id);if(alive.current&&op===operation.current&&uid===client.session?.user.id)setStatus(value);}
  useEffect(()=>{
-  operation.current++;lock.current=false;setBusy(false);setAdmin(false);setStatus(null);setIssued(null);setRequests([]);setCodes([]);setCode('');setError('');setNotice('');
-  if(connected)void run(refresh);else setTab(t=>t==='admin'?'beta':t);
+  operation.current++;lock.current=false;setBusy(false);setStatus(null);setCode('');setError('');setNotice('');
+  if(connected)void run(refresh);
   // Revalidate on actual account/connectivity changes, not every background list update.
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[me,connected,game.id]);
- useEffect(()=>{if(!mayManage&&tab==='admin')setTab('beta');},[mayManage,tab]);
  useEffect(()=>{
   alive.current=true;const previous=document.activeElement as HTMLElement|null;panel.current?.querySelector<HTMLButtonElement>('[aria-label="Закрыть свойства"]')?.focus();
   const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();closeRef.current();}if(e.key==='Tab'){
@@ -46,12 +40,11 @@ export default function GameProperties({game,onClose,onProfile}:{game:Game;onClo
  // Each opening is a new, game/account-scoped component.
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
- const action=(title:string,state:'approved'|'rejected'|'revoked',id:string)=><button disabled={busy} onClick={()=>{if(!window.confirm(`${title}? Решение будет сохранено на сервере.`))return;void run(async()=>{await client.decideBeta(id,state);await loadAdmin();await refresh();});}}>{title}</button>;
  return createPortal(<div className="gp-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)onClose();}}>
  <div ref={panel} role="dialog" aria-modal="true" aria-labelledby="gp-title" className="gp-panel">
   <header className="gp-header"><div><p className="gp-eyebrow">СВОЙСТВА ИГРЫ</p><h2 id="gp-title">{game.title}</h2></div><button className="gp-close" onClick={onClose} aria-label="Закрыть свойства">×</button></header>
   <div className="gp-tabs" role="tablist" aria-label="Разделы свойств">
-   {([['about','Об игре'],['beta','Бета-тест'],...(mayManage?[['admin','Управление']]:[])] as const).map(([id,label])=><button key={id} id={`gp-tab-${id}`} role="tab" aria-selected={tab===id} aria-controls="gp-content" onClick={()=>{setTab(id as typeof tab);if(id==='admin')void run(loadAdmin);}}>{label}</button>)}
+   {([['about','Об игре'],['beta','Бета-тест']] as const).map(([id,label])=><button key={id} id={`gp-tab-${id}`} role="tab" aria-selected={tab===id} aria-controls="gp-content" onClick={()=>setTab(id)}>{label}</button>)}
   </div>
   <div className="gp-content" id="gp-content" role="tabpanel" aria-labelledby={`gp-tab-${tab}`}>
   {tab==='about'&&<><p className="gp-eyebrow">ИНФОРМАЦИЯ</p><dl className="gp-facts"><div><dt>Разработчик</dt><dd>{game.developer}</dd></div><div><dt>Движок</dt><dd>{game.engine}</dd></div><div><dt>Стадия</dt><dd>{game.version} · В разработке</dd></div><div><dt>Цена</dt><dd>{game.id==='fantazia'?'Бесплатно':'Пока не объявлена'}</dd></div></dl><div className="gp-note"><strong>Сборка игры ещё не подключена</strong><p>Одобрение бета-доступа не устанавливает игру. Автор отдельно подготовит файлы для поддерживаемых устройств.</p></div><button className="gp-primary" onClick={()=>setTab('beta')}>Перейти к бета-тесту →</button></>}
@@ -63,19 +56,6 @@ export default function GameProperties({game,onClose,onProfile}:{game:Game;onClo
    </form>
    {connected&&<button disabled={busy} onClick={()=>void run(refresh)}>Проверить статус</button>}
    <p className="gp-fine">Автор выбирает режим кода: доступ сразу или только после его одобрения. Доступ связан с онлайн-аккаунтом и конкретной игрой. Смена локального имени не даёт прав администратора.</p>
-  </>}
-  {tab==='admin'&&mayManage&&<><h3>Управление бета-тестом</h3><p className="gp-muted">Права подтверждены сервером. Не передавай другим свой онлайн-аккаунт.</p>
-   <form className="gp-admin-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const c=await client.issueBeta(game.id,approval,limit,hours);if(alive.current)setIssued(c);await loadAdmin();});}}>
-    <label>Режим кода<select value={approval?'manual':'auto'} onChange={e=>setApproval(e.target.value==='manual')}><option value="manual">Моё одобрение каждой заявки</option><option value="auto">Доступ сразу после проверки</option></select></label>
-    <div className="gp-two"><label>Число игроков<input type="number" min={1} max={1000} required value={limit} onChange={e=>setLimit(Number(e.target.value))}/></label><label>Срок кода, часы<input type="number" min={1} max={720} required value={hours} onChange={e=>setHours(Number(e.target.value))}/></label></div>
-    <button className="gp-primary" disabled={busy}>Создать код</button>
-   </form>
-   {issued&&<div className="gp-note"><strong>Скопируй сейчас — повторно код не показывается</strong><input aria-label="Новый бета-код" readOnly value={issued.code} onFocus={e=>e.currentTarget.select()}/><button onClick={async()=>{setNotice('');setError('');try{await copyText(issued.code);setNotice('Код скопирован.');}catch{setError('Выдели код и скопируй вручную.');}}}>Скопировать код</button><p>Действует до {new Date(issued.expires_at).toLocaleString('ru-RU')}. На сервере хранится только хеш.</p></div>}
-   <div className="gp-section-heading"><h3>Заявки и доступ</h3><button disabled={busy} onClick={()=>void run(loadAdmin)}>Обновить</button></div>
-   {!requests.length&&<p className="gp-muted">Заявок пока нет.</p>}
-   {requests.map(r=><article className="gp-request" key={r.id}><strong>@{r.username}</strong><small>{r.user_id}</small><p>{BETA_LABELS[r.state]}</p><div className="gp-actions">{r.state!=='approved'&&action('Одобрить','approved',r.id)}{r.state==='pending'&&action('Отклонить','rejected',r.id)}{r.state==='approved'&&action('Отозвать доступ','revoked',r.id)}</div></article>)}
-   <h3>Выданные коды</h3><p className="gp-fine">Последние 200 записей. Место в лимите расходуется при заявке, даже если её потом отклонили. Отключение кода не отзывает ранее выданный доступ.</p>
-   {codes.map(c=><article className="gp-request" key={c.id}><small>ID: {c.id}</small><p>{c.require_approval?'С одобрением':'Автоматический'} · {c.uses}/{c.max_uses} заявок</p><p>До {new Date(c.expires_at).toLocaleString('ru-RU')}{c.revoked?' · Отключён':''}</p>{!c.revoked&&<button disabled={busy} onClick={()=>{if(window.confirm('Отключить этот код для новых заявок?'))void run(async()=>{await client.revokeBetaCode(c.id);await loadAdmin();});}}>Отключить код</button>}</article>)}
   </>}
   {busy&&<p className="gp-fine" role="status">Связываемся с сервером…</p>}{error&&<p className="gp-error" role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
   </div><footer className="gp-footer">TemkaLauncher · Бета-доступ не означает, что игра уже выпущена</footer>

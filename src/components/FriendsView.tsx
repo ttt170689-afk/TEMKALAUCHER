@@ -1,3 +1,5 @@
+import {openMessages} from '../lib/messaging';
+import PlayerActivity from './PlayerActivity';
 import {openPlayerProfile,playerError} from '../lib/playerCard';
 import {copyText} from '../lib/clipboard';
 import {useEffect,useRef,useState} from 'react';
@@ -9,11 +11,11 @@ import {onlineAvatar} from '../lib/online';
 import type {Friendship,OnlineProfile} from '../lib/online';
 import './social.css';
 export function OnlinePerson({person}:{person:OnlineProfile}){
- return <button type="button" className="social-person player-person-button" aria-label={`Открыть профиль @${person.username}`} onClick={()=>openPlayerProfile(person.id)}><span className="social-avatar">{person.username[0]?.toUpperCase()}{person.has_avatar&&<img src={onlineAvatar(person.id,person.avatar_version)} alt="Аватар игрока" onError={e=>{e.currentTarget.hidden=true;}}/>}</span><div><strong>@{person.username}</strong>{person.is_creator&&<small>Создатель · Администратор</small>}</div></button>;
+ return <button type="button" className="social-person player-person-button" aria-label={`Открыть профиль @${person.username}`} onClick={()=>openPlayerProfile(person.id)}><span className="social-avatar">{person.username[0]?.toUpperCase()}{person.has_avatar&&<img src={onlineAvatar(person.id,person.avatar_version)} alt="Аватар игрока" onError={e=>{e.currentTarget.hidden=true;}}/>}</span><div><strong>@{person.username}</strong>{person.is_creator&&<small>Создатель · Администратор</small>}<PlayerActivity id={person.id}/></div></button>;
 }
 export function FriendActions({row}:{row:Friendship}){
  const {client,action,busy,loading}=useOnlineAccount();const [confirm,setConfirm]=useState(false),disabled=busy||loading;
- if(row.status==='accepted')return <div className="social-actions">{confirm?<><span>Удалить @{row.username} из друзей?</span><button className="social-danger" disabled={disabled} onClick={()=>void action(()=>client.remove(row.request_id),`@${row.username} удалён из друзей.`)}>Да, удалить</button><button onClick={()=>setConfirm(false)}>Отмена</button></>:<button disabled={disabled} onClick={()=>setConfirm(true)}>Удалить из друзей</button>}</div>;
+ if(row.status==='accepted')return <div className="social-actions"><button disabled={disabled} aria-label={`Написать @${row.username}`} onClick={()=>openMessages(row.other_id)}>Написать</button>{confirm?<><span>Удалить @{row.username} из друзей?</span><button className="social-danger" disabled={disabled} onClick={()=>void action(()=>client.remove(row.request_id),`@${row.username} удалён из друзей.`)}>Да, удалить</button><button onClick={()=>setConfirm(false)}>Отмена</button></>:<button disabled={disabled} onClick={()=>setConfirm(true)}>Удалить из друзей</button>}</div>;
  const incoming=row.receiver_id===client.session?.user.id;
  return <div className="social-actions">{incoming&&<button className="social-primary" disabled={disabled} onClick={()=>void action(()=>client.accept(row.request_id),`@${row.username} добавлен в друзья.`)}>Принять</button>}<button disabled={disabled} onClick={()=>void action(()=>client.remove(row.request_id,true),incoming?`Заявка от @${row.username} отклонена.`:'Заявка отменена.')}>{incoming?'Отклонить':'Отменить заявку'}</button></div>;
 }

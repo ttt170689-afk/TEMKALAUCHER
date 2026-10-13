@@ -1,3 +1,4 @@
+import PlayerActivity from './PlayerActivity';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useOnlineAccount} from '../lib/onlineAccount';
@@ -19,7 +20,7 @@ export function GameStatsView({stats}:{stats?:GameStats}){
 export default function PlayerProfileHost(){
  const account=useOnlineAccount(),me=account.client.session?.user.id;
  const [id,setId]=useState<string|null>(null);
- useEffect(()=>{const open=(e:Event)=>{const id=(e as CustomEvent).detail?.id;if(typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id))setId(id);};window.addEventListener('temka-open-player',open);return()=>window.removeEventListener('temka-open-player',open);},[]);
+ useEffect(()=>{const open=(e:Event)=>{const id=(e as CustomEvent).detail?.id;if(typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id))setId(id);};const close=()=>setId(null);window.addEventListener('temka-open-player',open);window.addEventListener('temka-open-messages',close);return()=>{window.removeEventListener('temka-open-player',open);window.removeEventListener('temka-open-messages',close);};},[]);
  useEffect(()=>setId(null),[me,account.mode]);
  return id&&account.mode==='verified'?<PlayerProfileDialog key={`${me}:${id}`} id={id} close={()=>setId(null)}/>:null;
 }
@@ -38,7 +39,7 @@ function PlayerProfileDialog({id,close}:{id:string;close:()=>void}){
  {card&&<><div className="player-cover"><PlayerAvatar card={card}/><div><span className="player-label">{card.is_creator?'СОЗДАТЕЛЬ · АДМИНИСТРАТОР':'ИГРОК TEMKA'}</span><h2>{card.display_name||card.username}</h2><p>@{card.username}</p></div>{me===id?<span className="player-tag">Это твой профиль</span>:<div className="player-connect">{relation?<><small>{relation.status==='accepted'?'Уже в друзьях':relation.receiver_id===me?'Входящая заявка':'Заявка отправлена'}</small><FriendActions row={relation}/></>:<button className="social-primary" disabled={account.busy||account.loading||!!account.friendsError||!account.profile} onClick={()=>void account.action(()=>account.client.invite(id),'Заявка отправлена.')}>Добавить в друзья</button>}</div>}</div>
  <div className="player-content"><section className="player-about"><span className="player-label">ОБ ИГРОКЕ</span><p>{card.bio||'Игрок ещё не рассказал о себе.'}</p><small>Профиль виден вошедшим игрокам. Почта и локальные данные скрыты.</small></section>
  {account.friendsError&&<p role="alert">Не удалось проверить дружбу: {account.friendsError}</p>}{account.actionError&&<p role="alert">{account.actionError}</p>}{account.notice&&<p role="status">{account.notice}</p>}
- <div className="player-games-heading"><h3>Игровой профиль</h3><span>ДАННЫЕ ИЗ ИГР</span></div>{[...GAMES].sort((a,b)=>Number(card.games.some(g=>g.game_id===b.id))-Number(card.games.some(g=>g.game_id===a.id))).map(game=><section className="player-game" key={game.id}><header><span style={{background:game.accent}}/><h3>{game.title}</h3><small>{card.games.some(g=>g.game_id===game.id)?'Передано игровым сервером':'Статистика ещё не подключена'}</small></header><GameStatsView stats={card.games.find(g=>g.game_id===game.id)}/></section>)}
+ <PlayerActivity id={id} detailed/><div className="player-games-heading"><h3>Игровой профиль</h3><span>ДАННЫЕ ИЗ ИГР</span></div>{[...GAMES].sort((a,b)=>Number(card.games.some(g=>g.game_id===b.id))-Number(card.games.some(g=>g.game_id===a.id))).map(game=><section className="player-game" key={game.id}><header><span style={{background:game.accent}}/><h3>{game.title}</h3><small>{card.games.some(g=>g.game_id===game.id)?'Передано игровым сервером':'Статистика ещё не подключена'}</small></header><GameStatsView stats={card.games.find(g=>g.game_id===game.id)}/></section>)}
  <p className="player-fine">Уровни, часы и награды появляются после подключения игры. Время открытого лаунчера не считается игровым.</p></div></>}
  </section></div>,document.body);
 }

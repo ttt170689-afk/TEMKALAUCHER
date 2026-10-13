@@ -25,7 +25,8 @@ const path = require('node:path');
     const cardMeta={display_name:'Тестовый игрок',bio:'',avatar_style:'cube',avatar_color:'#63e6be'};
     const playerCard=id=>id===mockUser.id?{...mockUser,...cardMeta,games:[]}:
       id===mockOther.id?{...mockOther,display_name:'Друг из теста',bio:'Тестовый профиль, не реальный игрок.',avatar_style:'mage',avatar_color:'#63e6be',games:[{game_id:'fantazia',level:4,play_seconds:7260,last_played_at:'2026-10-13T00:00:00Z',updated_at:'2026-10-13T00:00:00Z',achievements:[{id:'first',title:'Первый шаг',earned_at:'2026-10-13T00:00:00Z'}],achievements_total:3}]}:null;
-    const mockedEndpoints=new Set();
+    const mockedEndpoints=new Set();const directMessages=[],messageNonces=new Map();let loseMessageAck=false;
+    const dmPeer=()=>({peer_id:mockOther.id,username:mockOther.username,has_avatar:false,avatar_version:0,is_creator:false,can_send:true,last_message:directMessages.at(-1)?.body||null,last_at:directMessages.at(-1)?.created_at||null,unread:0});
     await app.context().route(/^https?:/,route=>{
       const request=route.request(),url=request.url();externalRequests.push(url);
       if(clipboardAccount&&mockAvatar&&url.startsWith(onlineBase+'/storage/v1/object/public/avatars/'+mockUser.id+'/avatar.webp'))return route.fulfill({status:200,contentType:'image/webp',body:mockAvatar});
@@ -33,6 +34,15 @@ const path = require('node:path');
       if(clipboardAccount&&url.startsWith(onlineBase+'/')&&request.headers().authorization==='Bearer clipboard-smoke-token'){
         const endpoint=url.slice(onlineBase.length);let body={};try{body=request.postDataJSON()||{};}catch{}
         const respond=data=>{mockedEndpoints.add(endpoint);return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});};
+        if(endpoint==='/rest/v1/rpc/get_player_activity')return respond({playing:null,history:[]});
+        if(endpoint==='/rest/v1/rpc/dm_threads')return respond([dmPeer()]);
+        if(endpoint==='/rest/v1/rpc/dm_messages')return respond(directMessages.slice(-50));
+        if(endpoint==='/rest/v1/rpc/dm_mark_read')return respond(null);
+        if(endpoint==='/rest/v1/rpc/dm_send'){
+          if(!messageNonces.has(body.nonce)){const m={id:require('node:crypto').randomUUID(),sender_id:mockUser.id,receiver_id:body.peer_id,body:body.message_text,created_at:new Date().toISOString()};messageNonces.set(body.nonce,m);directMessages.push(m);}
+          if(loseMessageAck){loseMessageAck=false;return route.fulfill({status:503,contentType:'application/json',body:'{"message":"Тест: ответ потерян"}'});}
+          return respond(messageNonces.get(body.nonce));
+        }
         if(endpoint==='/rest/v1/rpc/get_player_card')return failCard?route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({message:'Could not find the function public.get_player_card in the schema cache'})}):respond(playerCard(body.player_id));
         if(endpoint==='/rest/v1/rpc/search_players')return respond([mockUser,mockOther].filter(p=>p.username.toLowerCase().includes(String(body.query_text).toLowerCase())));
         if(endpoint==='/rest/v1/rpc/save_player_card'){cardMeta.display_name=body.new_display_name;cardMeta.bio=body.new_bio;return respond(playerCard(mockUser.id));}
@@ -61,6 +71,7 @@ const path = require('node:path');
     phase('25-character registration');
     const nick = 'temka_play_official_12345';
     assert.equal(nick.length, 25);
+    await page.getByRole('button',{name:'Локальный режим',exact:true}).click();
     const nameInput = page.getByPlaceholder('Temka_Игрок');
     await nameInput.fill(nick + '7');
     assert.equal(await nameInput.inputValue(), nick);
@@ -195,7 +206,7 @@ const path = require('node:path');
     await page.keyboard.press('Escape');await playerDialog.waitFor({state:'hidden'});
     assert.equal(await page.getByRole('button',{name:'Открыть профиль @copy_friend',exact:true}).evaluate(el=>el===document.activeElement),true);
     failCard=true;await page.getByRole('button',{name:'Открыть профиль @copy_friend',exact:true}).click();
-    await playerDialog.getByText('Обновление профилей ещё не подключено на сервере. Сообщи temka_play_official.',{exact:true}).waitFor();
+    await playerDialog.getByText('Обновление онлайн-функций ещё не подключено на сервере. Сообщи temka_play_official.',{exact:true}).waitFor();
     failCard=false;await playerDialog.getByRole('button',{name:'Повторить загрузку профиля',exact:true}).click();
     await playerDialog.getByText('Друг из теста',{exact:true}).waitFor();await page.keyboard.press('Escape');
     phase('one avatar picker and editable public identity');
@@ -271,6 +282,21 @@ const path = require('node:path');
     }finally{
       await app.evaluate(({clipboard})=>{clipboard.writeText=globalThis.__smokeWriteText;delete globalThis.__smokeWriteText;});
     }
+    phase('native direct messages, lost acknowledgment retry, literal text');
+    await page.getByRole('button',{name:'Сообщения',exact:true}).click();
+    const dm=page.getByRole('dialog',{name:'Сообщения',exact:true});
+    await dm.getByRole('button',{name:'Диалог с @'+mockOther.username,exact:true}).click();
+    const compose=dm.getByRole('textbox',{name:'Сообщение другу',exact:true});
+    const literal='<img src=x onerror=alert(1)> Привет с ПК';
+    await compose.fill(literal);await dm.getByRole('button',{name:'Отправить',exact:true}).click();await dm.locator('.dm-message p').filter({hasText:literal}).waitFor();
+    assert.equal(await dm.locator('.dm-message img').count(),0);assert.equal(await compose.inputValue(),'');
+    loseMessageAck=true;await compose.fill('Повтор без дубля');await dm.getByRole('button',{name:'Отправить',exact:true}).click();await dm.getByRole('alert').filter({hasText:'ответ потерян'}).waitFor();assert.equal(await compose.inputValue(),'Повтор без дубля');
+    await dm.getByRole('button',{name:'Отправить',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.dm-compose textarea')?.value==='');assert.equal(directMessages.filter(m=>m.body==='Повтор без дубля').length,1);
+    await page.keyboard.press('Escape');await dm.waitFor({state:'hidden'});
+    phase('Soon native game IPC never creates activity');
+    assert.equal(await page.evaluate(()=>window.temka.game.current()),null);
+    for(const game of ['fantazia','temkaworld','https://untrusted.invalid'])assert.equal(await page.evaluate(game=>window.temka.game.open(game).then(()=>false,()=>true),game),true);
+    assert.equal(externalRequests.filter(url=>url.endsWith('/activity_start')).length,0);
     for(const endpoint of ['/auth/v1/user','/rest/v1/rpc/my_profile','/rest/v1/rpc/list_my_friends','/rest/v1/rpc/search_players','/rest/v1/rpc/get_player_card','/rest/v1/rpc/save_player_card','/rest/v1/rpc/set_avatar_visible'])assert(mockedEndpoints.has(endpoint),endpoint);
     await page.evaluate(()=>{for(const key of Object.keys(localStorage))if(key.startsWith('temka-online-v1:'))localStorage.removeItem(key);});
     clipboardAccount=false;

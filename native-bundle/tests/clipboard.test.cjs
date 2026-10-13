@@ -39,8 +39,8 @@ test('renderer rejects invalid clipboard payloads before invoking bridge',async(
  let calls=0;const copy=helper({temka:{copyText:async()=>{calls++;return {ok:true};}}});
  for(const text of [null,{},'','a'.repeat(4097),'a\0b'])await assert.rejects(()=>copy(text));assert.equal(calls,0);
 });
-test('all three copy buttons use shared clipboard helper',()=>{
- for(const file of ['FriendsPanel.tsx','FriendsView.tsx','GameProperties.tsx']){
+test('remaining launcher copy buttons use shared clipboard helper; beta generation moved out',()=>{
+ for(const file of ['FriendsPanel.tsx','FriendsView.tsx']){
   const text=fs.readFileSync(path.join(root,'src/components',file),'utf8');assert(text.includes("from '../lib/clipboard'"));assert(text.includes('await copyText('));assert(!text.includes('navigator.clipboard'));
  }
 });

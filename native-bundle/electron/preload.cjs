@@ -11,6 +11,12 @@ try {
 
 contextBridge.exposeInMainWorld("temka", {
   version,
+  game: {
+    open: game => ipcRenderer.invoke('game:open',game),
+    current: () => ipcRenderer.invoke('game:current'),
+    close: () => ipcRenderer.invoke('game:close'),
+    onState: cb => {const listener=(_e,state)=>cb(state);ipcRenderer.on('game:state',listener);return ()=>ipcRenderer.removeListener('game:state',listener);}
+  },
   platform: process.platform,
   copyText: text => ipcRenderer.invoke("clipboard:write-text", text),
   chooseGameFolder: currentPath => ipcRenderer.invoke("folder:choose", currentPath),
