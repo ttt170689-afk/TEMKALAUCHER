@@ -13,6 +13,7 @@ import { WaitlistProvider } from "./lib/waitlist";
 import { pointer } from "./lib/pointer";
 import Boot from "./components/Boot";
 import AuthView from "./components/AuthView";
+import FriendNotifications from "./components/FriendNotifications";
 import ProfileView from "./components/ProfileView";
 import UpdateBanner from "./components/UpdateBanner";
 import UpdateOverlay from "./components/UpdateOverlay";
@@ -205,6 +206,8 @@ function Shell() {
                 className="input-tl w-full py-2.5 pl-10 pr-4 text-[13px]"
               />
             </div>
+
+            <FriendNotifications key={user.id} localId={user.id} onProfile={() => setView("profile")} />
 
             {user && (
               <button onClick={() => setView("profile")} className="hidden items-center gap-2.5 rounded-full transition-opacity hover:opacity-85 sm:flex" aria-label="Открыть профиль">

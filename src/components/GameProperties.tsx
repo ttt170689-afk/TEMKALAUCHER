@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {Game} from '../data/games';
 import {useAuth} from '../lib/auth';
-import {CloudClient,onlineEnabled} from '../lib/online';
+import {getCloudClient,onlineEnabled} from '../lib/online';
 import {BETA_LABELS} from '../lib/betaContract';
 import type {BetaStatus,BetaRequest,BetaCode,IssuedBetaCode} from '../lib/betaContract';
 import './game-properties.css';
@@ -15,7 +15,7 @@ export function GameMenu({game,onProperties,card=false}:{game:Game;onProperties:
  </div>;
 }
 export default function GameProperties({game,onClose,onProfile}:{game:Game;onClose:()=>void;onProfile:()=>void}){
- const {user}=useAuth();const client=useMemo(()=>new CloudClient(user?.id||''),[user?.id]);
+ const {user}=useAuth();const client=useMemo(()=>getCloudClient(user?.id||''),[user?.id]);
  const [tab,setTab]=useState<'about'|'beta'|'admin'>('about');const [status,setStatus]=useState<BetaStatus|null>(null);
  const [admin,setAdmin]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [code,setCode]=useState('');const [notice,setNotice]=useState('');
  const [requests,setRequests]=useState<BetaRequest[]>([]);const [codes,setCodes]=useState<BetaCode[]>([]);const [issued,setIssued]=useState<IssuedBetaCode|null>(null);
