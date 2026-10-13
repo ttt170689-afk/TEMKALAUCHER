@@ -1,7 +1,8 @@
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog, session, net } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog, session, net, clipboard } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { createFolderPicker } = require('./folder-picker.cjs');
+const { createClipboardWriter } = require('./clipboard.cjs');
 const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 const { createReleaseSource } = require('./release-source.cjs');
@@ -41,6 +42,7 @@ handle('update:relaunch', () => updates.relaunch());
 handle('launch-updater', () => { showWindow(); win.webContents.send('temka-check-updates'); return true; });
 const folderPicker = createFolderPicker({dialog,getWindow:()=>win,getDefaultPath:()=>app.getPath('documents')});
 handle('folder:choose', currentPath => folderPicker.choose(currentPath));
+handle('clipboard:write-text', createClipboardWriter(clipboard));
 handle('app-quit', () => { forceQuit = true; app.quit(); });
 
 function showWindow() {

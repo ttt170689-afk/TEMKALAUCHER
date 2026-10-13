@@ -17,7 +17,7 @@ test('protected native smoke matches accessible local-name field and save button
 test('native smoke requires all six destinations, avatar and new friends/beta UI',()=>{
  const smoke=protectedSmoke();
  for(const label of ['Главная','Новости','Библиотека','Друзья','Профиль','Настройки'])assert(smoke.includes(`'${label}'`));
- for(const required of ["phase('custom avatar upload and persistence')",".setInputFiles(","[data-friends-page]","name:'Уведомления'","name:'Бета-тест'","window.require","__trayEventSeen"])assert(smoke.includes(required),required);
+ for(const required of ["phase('custom avatar upload and persistence')",".setInputFiles(","[data-friends-page]","name:'Уведомления'","name:'Бета-тест'","window.require","__trayEventSeen","phase('system clipboard IPC","clipboard.readText()","Скопировать свой юзернейм","copy failure does not claim success","partial friend search and public player cards","one avatar picker and editable public identity","new library selection filters tabs and honest game statistics"])assert(smoke.includes(required),required);
  assert(!smoke.includes("if (await page.getByLabel('Загрузить свою аватарку'"));
  assert(smoke.includes("route(/^https?:/"));assert(smoke.includes('no real OTP'));
 });

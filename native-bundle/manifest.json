@@ -1,8 +1,8 @@
 {
   "protocol": 3,
   "files": {
-    "electron/main.cjs": "cc9df6429fcd1e320fb62f348c2137c9d24da6254f2cbc3d39b002df411d41ce",
-    "electron/preload.cjs": "2684b904d9bbb757284f2654387a6e65ccc202b1330b65a1768ebca76c1b5a18",
+    "electron/main.cjs": "184c5b2324190c204345ba7fdc2246b8e84215b463d7d32c836e3c606311054f",
+    "electron/preload.cjs": "ba4c845e47a53e8f108c78e7beffba34e99379a84109e4ef4b3a82cc4bba9511",
     "electron/update-controller.cjs": "4b9929e96b67ebb6e1a5e6d4d183a7606a0dbdb4301e6c165ee85158ba1303a8",
     "electron/release-source.cjs": "cbc8e1db7f5876036c8a18d34f4488bda8cc8c38ca84d29fc350faec3a481be7",
     "electron/folder-picker.cjs": "ff3ecf36ed2bed40d078c23d7fa6f080bc12b5180ef5644e9ce8fb92e2197fe5",
@@ -16,8 +16,15 @@
     "tests/folder-picker.test.cjs": "3057eee71223203a477c08c30e4013fb55a5a9a2a105480f9ee7ec05b8470506",
     "tests/native-bundle.test.cjs": "46fca6d74e1f0b5ec38b92888bb9fa4dbf2b6c1510beb252a50554e106d114cb",
     "tests/beta-contract.test.cjs": "5523dfd7d266a8c908f6616d3b9b5a3d047e0207a1b6460b1353e7ace2d05271",
-    "README.md": "6dc07782ebd3476626851cd27a3a3282159f6e8ae64d11f21d24eda03e5ac1c8",
-    "scripts/smoke-electron.cjs": "16135ea170c07e7c40a1e1d6e12deb35117da4f5f0ff16fe400b77f7f56320dd",
-    "tests/ci-smoke.test.cjs": "e89074b4648bf8158dc58e19c1213eea76ade8c962b29358bec872dcbe7f75d8"
+    "README.md": "d2d6fb97ed9abe7755a504b05dd405feaaa12cb6a2306ed54fea3b6c88efd0a6",
+    "scripts/smoke-electron.cjs": "2e8501a390a8d3ca19f565f9f5dfad1201f2a8a61aef2ab66a9d98b3694fd1db",
+    "tests/ci-smoke.test.cjs": "83411208af1cae3890ca288c79311701b32e608b926be81c2507d13eb723f9c2",
+    "electron/clipboard.cjs": "bc266d0623bbaf973b7b3d02275d98f26972fd4db53034075b06c9113502ba33",
+    "src/lib/clipboard.ts": "f6dd68ea19ccc498a1bbd38feebe75c374a302359d0cadb351eb8f26edae4eb6",
+    "tests/clipboard.test.cjs": "128d967814f669a7b22e54428cb72cdf2d11add4f572056aeba70439b4590791",
+    "src/lib/playerCard.ts": "aceffb4363cd7395eb013523bb2967ad4c8badc21b2770d2a9acde908d24d638",
+    "tests/player-card.test.cjs": "1cde2ffd10b17febc978f3d89d6a9b33fa28fbaaa675b5eb468e3fe8f572ddc6",
+    "CHANGELOG.md": "1efc691b67bdb4da1765d83ecb015ad3d1eb8730e8ce4edd84b8034e5ec60a33",
+    "TEST-REPORT.md": "017075aaa12a8babe7aff55cdfd01e09e15a78013ea34aa55bf43b2ce5d080c8"
   }
 }

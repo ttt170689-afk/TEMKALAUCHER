@@ -9,6 +9,7 @@ export default function FriendNotifications({onProfile,onFriends}:{localId:strin
  const account=useOnlineAccount(),{mode,client,friends,refresh,loading,busy}=account;
  const [open,setOpen]=useState(false),panel=useRef<HTMLDivElement>(null);
  const rows=incomingRequests(friends,client.session?.user.id||''),count=mode==='verified'?rows.length:0;
+ useEffect(()=>{const close=()=>setOpen(false);window.addEventListener('temka-open-player',close);return()=>window.removeEventListener('temka-open-player',close);},[]);
  useEffect(()=>{
   if(!open)return;const previous=document.activeElement as HTMLElement|null;
   panel.current?.querySelector<HTMLButtonElement>('[aria-label="Закрыть уведомления"]')?.focus();

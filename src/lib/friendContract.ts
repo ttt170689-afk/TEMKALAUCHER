@@ -12,11 +12,12 @@ export function readFriendships(value: unknown, me: string): Friendship[] {
 export function incomingRequests(rows: Friendship[], me: string): Friendship[] {
   return rows.filter(row=>row.status==='pending'&&row.receiver_id===me);
 }
-export function readOnlineProfiles(value:unknown): import('./online').OnlineProfile[] {
-  if(!Array.isArray(value)||value.length>1)throw Error('Сервер не подтвердил профиль.');
+export function readOnlineProfiles(value:unknown,limit=1): import('./online').OnlineProfile[] {
+  if(!Array.isArray(value)||value.length>limit)throw Error('Сервер не подтвердил профиль.');
+  const ids=new Set<string>();
   return value.map(r=>{
-    if(!r||!uuid.test(r.id)||typeof r.username!=='string'||!/^[a-zа-яё0-9_]{3,25}$/i.test(r.username)||typeof r.has_avatar!=='boolean'||typeof r.is_creator!=='boolean'||!Number.isSafeInteger(r.avatar_version)||r.avatar_version<0)throw Error('Сервер вернул некорректный профиль.');
-    return r;
+    if(!r||ids.has(r.id)||!uuid.test(r.id)||typeof r.username!=='string'||!/^[a-zа-яё0-9_]{3,25}$/i.test(r.username)||typeof r.has_avatar!=='boolean'||typeof r.is_creator!=='boolean'||!Number.isSafeInteger(r.avatar_version)||r.avatar_version<0)throw Error('Сервер вернул некорректный профиль.');
+    ids.add(r.id);return r;
   });
 }
 export type FriendTab='friends'|'incoming'|'outgoing';

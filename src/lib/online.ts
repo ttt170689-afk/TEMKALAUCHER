@@ -1,4 +1,6 @@
 /// <reference types="vite/client" />
+import {readPlayerCard} from './playerCard';
+import type {PlayerCard} from './playerCard';
 import { readFriendships, readOnlineProfiles } from './friendContract';
 import { isCustomAvatar } from './avatar';
 import {readBetaStatus,readBetaResult,validateBetaCode,isGame} from './betaContract';
@@ -108,6 +110,23 @@ export class CloudClient {
   async issueBeta(game:string,approval:boolean,limit:number,hours:number):Promise<IssuedBetaCode> {const r=await this.request('/rest/v1/rpc/beta_admin_issue',{method:'POST',body:JSON.stringify({p_game:game,p_approval:approval,p_limit:limit,p_hours:hours})});if(!r||r.game_id!==game||!UUID.test(r.id||'')||typeof r.code!=='string')throw Error('Сервер не подтвердил создание кода.');return r;}
   async decideBeta(id:string,state:'approved'|'rejected'|'revoked') {if(!UUID.test(id))throw Error('Некорректная заявка.');const r=await this.request('/rest/v1/rpc/beta_admin_decide',{method:'POST',body:JSON.stringify({p_request:id,p_state:state})});if(r?.id!==id||r?.state!==state)throw Error('Сервер не подтвердил решение.');}
   async revokeBetaCode(id:string) {if(!UUID.test(id))throw Error('Некорректный код.');await this.request('/rest/v1/rpc/beta_admin_revoke_code',{method:'POST',body:JSON.stringify({p_id:id})});}
+  async searchPlayers(query:string):Promise<OnlineProfile[]>{
+    const name=query.trim().replace(/^@/,'');
+    if(!/^[a-zа-яё0-9_]{2,25}$/i.test(name))throw Error('Введи минимум 2 символа юзернейма.');
+    await this.requireVerified();
+    return readOnlineProfiles(await this.request('/rest/v1/rpc/search_players',{method:'POST',body:JSON.stringify({query_text:name})}),20);
+  }
+  async playerCard(id:string):Promise<PlayerCard>{
+    if(!UUID.test(id))throw Error('Некорректный игрок.');
+    return readPlayerCard(await this.request('/rest/v1/rpc/get_player_card',{method:'POST',body:JSON.stringify({player_id:id})}),id);
+  }
+  async savePlayerCard(name:string,bio:string):Promise<PlayerCard>{
+    const id=this.session?.user.id;if(!id)throw Error('Сначала подтверди почту.');
+    return readPlayerCard(await this.request('/rest/v1/rpc/save_player_card',{method:'POST',body:JSON.stringify({new_display_name:name.trim(),new_bio:bio.trim()})}),id);
+  }
+  async saveAvatarStyle(style:string,color:string){
+    await this.request('/rest/v1/rpc/set_player_avatar_style',{method:'POST',body:JSON.stringify({new_style:style,new_color:color})});notifyOnline(this.localId);
+  }
   async ownProfile(): Promise<OnlineProfile | null> {
     const me=this.session?.user.id;
     const rows=readOnlineProfiles(await this.request('/rest/v1/rpc/my_profile',{method:'POST',body:'{}'}));
@@ -157,12 +176,15 @@ export class CloudClient {
     await this.requireVerified();
     const id = this.session!.user.id;
     await this.request(`/storage/v1/object/avatars/${id}/avatar.webp`, {method:'POST',headers:{'Content-Type':'image/webp','x-upsert':'true'},body:new Blob([bytes],{type:'image/webp'})});
+    if(this.session?.user.id!==id)throw Error('Онлайн-аккаунт изменился. Повтори действие.');
     await this.request('/rest/v1/rpc/set_avatar_visible', {method:'POST',body:'{"visible":true}'});notifyOnline(this.localId);
   }
   async removePublishedAvatar() {
     await this.requireVerified();
+    const id=this.session!.user.id;
     await this.request('/rest/v1/rpc/set_avatar_visible', {method:'POST',body:'{"visible":false}'});
-    await this.request('/storage/v1/object/avatars', {method:'DELETE',body:JSON.stringify({prefixes:[`${this.session!.user.id}/avatar.webp`]})});notifyOnline(this.localId);
+    if(this.session?.user.id!==id)throw Error('Онлайн-аккаунт изменился.');
+    await this.request('/storage/v1/object/avatars', {method:'DELETE',body:JSON.stringify({prefixes:[`${id}/avatar.webp`]})});notifyOnline(this.localId);
   }
   async logout() {
     const session=this.session;this.saveSession(null);

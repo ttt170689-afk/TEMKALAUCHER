@@ -12,6 +12,7 @@ try {
 contextBridge.exposeInMainWorld("temka", {
   version,
   platform: process.platform,
+  copyText: text => ipcRenderer.invoke("clipboard:write-text", text),
   chooseGameFolder: currentPath => ipcRenderer.invoke("folder:choose", currentPath),
   launchUpdater: () => ipcRenderer.invoke("launch-updater"),
   quit: () => ipcRenderer.invoke("app-quit"),

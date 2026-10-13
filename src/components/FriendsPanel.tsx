@@ -1,3 +1,4 @@
+import {copyText} from '../lib/clipboard';
 // Online identity settings only. Friend lists/search live in FriendsView, without duplication.
 import {useEffect,useRef,useState} from 'react';
 import type {Account} from '../lib/auth';
@@ -6,7 +7,7 @@ import {onlineProject} from '../lib/online';
 import {onlineError} from '../lib/friendContract';
 import {readOtp,secondsLeft} from '../lib/otpState';
 import type {OtpState} from '../lib/otpState';
-import {isCustomAvatar} from '../lib/avatar';
+import {OnlineProfileEditor} from './PlayerProfile';
 import './social.css';
 export default function FriendsPanel({localUser,onFriends}:{localUser:Account;onFriends:()=>void}){
  const account=useOnlineAccount(),{client,mode,profile,refresh}=account;
@@ -41,12 +42,12 @@ export default function FriendsPanel({localUser,onFriends}:{localUser:Account;on
   </>}
   {mode==='verified'&&<>
    <div className="social-own"><div><strong>{localUser.username}</strong><p className="social-handle">{profile?`@${profile.username}`:'Юзернейм ещё не выбран'}</p>{profile?.is_creator&&<small>Создатель · Администратор</small>}</div>
-    <div className="social-actions">{profile&&<button onClick={()=>void run(async()=>{try{await navigator.clipboard.writeText('@'+profile.username);setNotice('Юзернейм скопирован.');}catch{throw Error(`Не удалось скопировать. Твой юзернейм: @${profile.username}`);}})}>Скопировать @юзернейм</button>}<button className="social-primary" onClick={onFriends}>Мои друзья →</button></div>
+    <div className="social-actions">{profile&&<button onClick={()=>void run(async()=>{try{await copyText('@'+profile.username);setNotice('Юзернейм скопирован.');}catch{throw Error(`Не удалось скопировать. Твой юзернейм: @${profile.username}`);}})}>Скопировать @юзернейм</button>}<button className="social-primary" onClick={onFriends}>Мои друзья →</button></div>
    </div>
    <form className="social-form" onSubmit={e=>{e.preventDefault();void run(async()=>{await client.saveUsername(username);draftTouched.current=false;await refresh();if(alive.current)setNotice('Онлайн-юзернейм сохранён. Имя на этом устройстве не изменилось.');});}}>
     <label>Онлайн-юзернейм<input aria-label="Онлайн-юзернейм" value={username} placeholder="Например, temka_friend" maxLength={25} disabled={disabled} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={e=>{draftTouched.current=true;setUsername(e.target.value);}}/><small>3–25 букв, цифр или «_». По нему тебя найдут друзья.</small></label><button disabled={disabled||!username.trim()||username.trim()===profile?.username}>Сохранить онлайн-ник</button>
    </form>
-   {profile&&<details className="social-help"><summary>Аватарка для друзей</summary><p>Публикация добровольная: изображение станет публичным. Локальное фото само не отправляется.</p><div className="social-actions"><button disabled={disabled||!isCustomAvatar(localUser.profile.avatar)} onClick={()=>void run(async()=>{await client.publishAvatar(localUser.profile.avatar);await refresh();setNotice('Аватарка опубликована.');})}>Опубликовать аватарку для друзей</button>{profile.has_avatar&&<button disabled={disabled} onClick={()=>void run(async()=>{await client.removePublishedAvatar();await refresh();})}>Удалить опубликованную аватарку</button>}</div></details>}
+   {profile&&<OnlineProfileEditor fallbackName={localUser.username}/>}
   </>}
   {client.session&&<button className="social-signout" disabled={disabled} onClick={()=>void run(async()=>{pending(null);await client.logout();})}>Выйти из онлайн-профиля</button>}
   {busy&&<p className="social-muted" role="status">Связываемся с сервером…</p>}{error&&<p className="social-alert" role="alert">{error}</p>}{notice&&<p className="social-success" role="status">{notice}</p>}

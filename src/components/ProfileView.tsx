@@ -1,3 +1,4 @@
+import {useOnlineAccount} from '../lib/onlineAccount';
 import { hasLocalCreatorSignature, LOCAL_CREATOR_SIGNATURE_NOTE } from "../lib/creatorIdentity";
 import OnlineIdentity from "./OnlineIdentity";
 import FriendsPanel from "./FriendsPanel";
@@ -14,14 +15,17 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
   const { user, updateProfile, rename, logout, deleteAccount } = useAuth();
   const { entries, leave } = useWaitlist();
   const { push } = useToast();
+  const online=useOnlineAccount();
+  const share=online.mode==='verified'&&!!online.profile;
   const [nameDraft, setNameDraft] = useState(user?.username ?? "");
   const [statusDraft, setStatusDraft] = useState(user?.profile.status ?? "");
   const [confirmDel, setConfirmDel] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
-  const avatarOperation = useRef(0);
+  const avatarOperation = useRef(0),avatarLock=useRef(false);
   useEffect(() => () => {avatarOperation.current++;}, []);
   const chooseAvatar = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file||avatarLock.current) return;avatarLock.current=true;
+    const expectedOnline=online.client.session?.user.id;
     const operation = ++avatarOperation.current;
     setAvatarBusy(true);
     try {
@@ -29,9 +33,23 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
       if (operation !== avatarOperation.current) return;
       const error = updateProfile({avatar});
       if (error) throw new Error(error);
-      push("ok", "Аватарка сохранена", "Изображение сохранено на этом устройстве. Публикация для друзей — в настройках онлайн-профиля.");
+      if(share){
+        try{if(expectedOnline!==online.client.session?.user.id)throw Error('Онлайн-аккаунт изменился. Выбери файл ещё раз.');await online.client.publishAvatar(avatar);await online.refresh();if(operation===avatarOperation.current)push("ok","Аватарка сохранена","Фото доступно в твоём онлайн-профиле.");}
+        catch(error){if(operation===avatarOperation.current)push("warn","Фото сохранено только на устройстве","Онлайн-загрузка не завершилась: "+(error instanceof Error?error.message:String(error))+". Выбери файл ещё раз для повтора.");}
+      }else push("ok","Аватарка сохранена","Пока только на устройстве. После входа и выбора онлайн-ника выбери фото ещё раз, чтобы сохранить его для других игроков.");
     } catch (error) { if (operation !== avatarOperation.current) return; push("warn", "Не удалось сохранить аватарку", String(error instanceof Error ? error.message : error)); }
-    finally {if (operation === avatarOperation.current) setAvatarBusy(false);}
+    finally {avatarLock.current=false;if (operation === avatarOperation.current) setAvatarBusy(false);}
+  };
+
+  const chooseStyle=async(style:string,color=user?.profile.color||'#63e6be')=>{
+    if(avatarLock.current)return;avatarLock.current=true;const operation=++avatarOperation.current,expectedOnline=online.client.session?.user.id;setAvatarBusy(true);
+    try{
+      if(share){await online.client.removePublishedAvatar();if(expectedOnline!==online.client.session?.user.id)throw Error('Онлайн-аккаунт изменился.');await online.client.saveAvatarStyle(style,color);await online.refresh();}
+      if(operation!==avatarOperation.current)return;
+      const error=updateProfile({avatar:style,color});if(error)throw Error(error);
+      push('ok','Аватар обновлён',share?'Изменение видно в онлайн-профиле.':'Сохранён на этом устройстве.');
+    }catch(error){push('warn','Не удалось обновить аватар',String(error instanceof Error?error.message:error));}
+    finally{avatarLock.current=false;if(operation===avatarOperation.current)setAvatarBusy(false);}
   };
 
   if (!user) return null;
@@ -139,16 +157,16 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
                 {avatarBusy ? "Обработка…" : "Загрузить свою аватарку"}
                 <input aria-label="Загрузить свою аватарку" type="file" accept="image/png,image/jpeg,image/webp" disabled={avatarBusy} className="sr-only" onChange={event => {const file = event.target.files?.[0]; event.target.value = ""; void chooseAvatar(file);}} />
               </label>
-              {isCustomAvatar(p.avatar) && <button disabled={avatarBusy} className="btn-ghost px-3 py-2 text-[12px]" onClick={() => {const error = updateProfile({avatar: "cube"}); if(error) push("warn", "Ошибка", error);}}>Убрать фото</button>}
+              {isCustomAvatar(p.avatar) && <button disabled={avatarBusy} className="btn-ghost px-3 py-2 text-[12px]" onClick={() => void chooseStyle("cube")}>Убрать фото</button>}
             </div>
-            <p className="mt-2 text-[11px] text-[var(--tx3)]">PNG, JPG, WebP до 5 МБ. Обрезка по центру до 512×512. Пока не опубликована — только на этом устройстве.</p>
+            <p className="mt-2 text-[11px] text-[var(--tx3)]">PNG, JPG, WebP до 5 МБ. Обрезка до 512×512. {share?'При выборе нового фото оно сохраняется и онлайн: его увидят другие игроки. Онлайн-фото хранится по публичной ссылке.':'Сейчас фото остаётся только на устройстве. Для онлайн-аватарки сначала войди и сохрани юзернейм.'}</p>
             <p className="mt-5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Вариант</p>
             <div className="mt-2.5 grid grid-cols-8 gap-2">
               {AVATAR_VARIANTS.map((v) => (
                 <button
                   key={v}
                   disabled={avatarBusy}
-                  onClick={() => updateProfile({ avatar: v })}
+                  onClick={() => void chooseStyle(v)}
                   className={`rounded-[12px] border p-1 transition-all duration-200 hover:-translate-y-0.5 ${
                     p.avatar === v
                       ? "border-[color-mix(in_srgb,var(--accent)_55%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
@@ -166,7 +184,7 @@ export default function ProfileView({onFriends}:{onFriends:()=>void}) {
               {AVATAR_COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() => updateProfile({ color: c })}
+                  disabled={avatarBusy} onClick={() => {if(isCustomAvatar(p.avatar)){const e=updateProfile({color:c});if(e)push("warn","Ошибка",e);}else void chooseStyle(p.avatar,c);}}
                   className="flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-200 hover:scale-110"
                   style={{ background: c, boxShadow: p.color === c ? `0 0 0 3px var(--bg1), 0 0 0 5px ${c}, 0 0 18px ${c}88` : `0 4px 12px ${c}55` }}
                   aria-label={`Цвет ${c}`}

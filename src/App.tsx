@@ -1,3 +1,4 @@
+import PlayerProfileHost from "./components/PlayerProfile";
 import "./lib/nativeContract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -178,6 +179,7 @@ function Shell() {
 
       {user && (
         <OnlineAccountProvider key={user.id} localId={user.id}>
+        <PlayerProfileHost/>
 
       <div className="relative z-10 flex min-h-0 flex-1">
         <Sidebar view={view} setView={setView} />

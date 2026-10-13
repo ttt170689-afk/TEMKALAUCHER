@@ -1,6 +1,6 @@
 // All mail/Auth/backend calls are intercepted. This is NOT a production integration test.
-const {chromium}=require('playwright'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs');
-const base=process.env.MAJOR_TEST_URL||'http://127.0.0.1:8090',shots=process.env.MAJOR_TEST_SHOTS||'/home/user/.cache/major-shots';fs.mkdirSync(shots,{recursive:true});
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:path');
+const base=process.env.MAJOR_TEST_URL||'http://127.0.0.1:8090',shots=process.env.MAJOR_TEST_SHOTS||path.resolve(__dirname,'..','test-results','major');fs.mkdirSync(shots,{recursive:true});
 let checks=0;const ok=(label,yes)=>{assert(yes,label);console.log('PASS',++checks,label);};
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333';
 const accounts={a:{id:A,email:'alpha@example.invalid',profile:null},b:{id:B,email:'brother@example.invalid',profile:null}};
@@ -26,9 +26,10 @@ async function routeAPI(route){
  if(path==='/auth/v1/logout')return send({});
  if(path.endsWith('/my_profile'))return send(actor.profile?[actor.profile]:[]);
  if(path.endsWith('/set_username')){if(body.new_username==='temka_play_official')return send({message:'Этот юзернейм зарезервирован для создателя.'},400);actor.profile=profile(actor.id,body.new_username);return send(null);}
- if(path.endsWith('/find_player')){
-  const result=allProfiles().filter(p=>p.username.toLowerCase()===body.exact_username.toLowerCase());
-  if(body.exact_username==='SlowFriend'){slowStarted=true;await new Promise(resolve=>slowResolve=resolve);}return send(result);
+ if(path.endsWith('/get_player_card')){const p=allProfiles().find(p=>p.id===body.player_id);return send(p?{...p,display_name:p.username,bio:'',avatar_style:'cube',avatar_color:'#63e6be',games:[]}:null);}
+ if(path.endsWith('/search_players')||path.endsWith('/find_player')){
+  const query=body.query_text||body.exact_username;const result=allProfiles().filter(p=>body.query_text?p.username.toLowerCase().includes(query.toLowerCase()):p.username.toLowerCase()===query.toLowerCase());
+  if(query==='SlowFriend'){slowStarted=true;await new Promise(resolve=>slowResolve=resolve);}return send(result);
  }
  if(path.endsWith('/list_my_friends')){
   if(listFail)return send({message:'Тестовая ошибка списка'},503);

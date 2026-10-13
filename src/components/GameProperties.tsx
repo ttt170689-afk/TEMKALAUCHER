@@ -1,3 +1,4 @@
+import {copyText} from '../lib/clipboard';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {Game} from '../data/games';
@@ -69,7 +70,7 @@ export default function GameProperties({game,onClose,onProfile}:{game:Game;onClo
     <div className="gp-two"><label>Число игроков<input type="number" min={1} max={1000} required value={limit} onChange={e=>setLimit(Number(e.target.value))}/></label><label>Срок кода, часы<input type="number" min={1} max={720} required value={hours} onChange={e=>setHours(Number(e.target.value))}/></label></div>
     <button className="gp-primary" disabled={busy}>Создать код</button>
    </form>
-   {issued&&<div className="gp-note"><strong>Скопируй сейчас — повторно код не показывается</strong><input aria-label="Новый бета-код" readOnly value={issued.code} onFocus={e=>e.currentTarget.select()}/><button onClick={async()=>{try{await navigator.clipboard.writeText(issued.code);setNotice('Код скопирован.');}catch{setNotice('Выдели код и скопируй вручную.');}}}>Скопировать код</button><p>Действует до {new Date(issued.expires_at).toLocaleString('ru-RU')}. На сервере хранится только хеш.</p></div>}
+   {issued&&<div className="gp-note"><strong>Скопируй сейчас — повторно код не показывается</strong><input aria-label="Новый бета-код" readOnly value={issued.code} onFocus={e=>e.currentTarget.select()}/><button onClick={async()=>{setNotice('');setError('');try{await copyText(issued.code);setNotice('Код скопирован.');}catch{setError('Выдели код и скопируй вручную.');}}}>Скопировать код</button><p>Действует до {new Date(issued.expires_at).toLocaleString('ru-RU')}. На сервере хранится только хеш.</p></div>}
    <div className="gp-section-heading"><h3>Заявки и доступ</h3><button disabled={busy} onClick={()=>void run(loadAdmin)}>Обновить</button></div>
    {!requests.length&&<p className="gp-muted">Заявок пока нет.</p>}
    {requests.map(r=><article className="gp-request" key={r.id}><strong>@{r.username}</strong><small>{r.user_id}</small><p>{BETA_LABELS[r.state]}</p><div className="gp-actions">{r.state!=='approved'&&action('Одобрить','approved',r.id)}{r.state==='pending'&&action('Отклонить','rejected',r.id)}{r.state==='approved'&&action('Отозвать доступ','revoked',r.id)}</div></article>)}
