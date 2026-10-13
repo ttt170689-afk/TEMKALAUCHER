@@ -3,13 +3,12 @@ import { isCustomAvatar } from './avatar';
 import {readBetaStatus,readBetaResult,validateBetaCode,isGame} from './betaContract';
 import type {BetaRequest,BetaCode,IssuedBetaCode} from './betaContract';
 
-const base = String(import.meta.env.VITE_TEMKA_SUPABASE_URL || '').replace(/\/$/, '');
-const publicKey = String(import.meta.env.VITE_TEMKA_SUPABASE_ANON_KEY || '');
-function validPublicKey(key: string): boolean {
-  if (/^sb_publishable_[\w-]+$/.test(key)) return true;
-  try {const payload = JSON.parse(atob(key.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return payload.role === 'anon';} catch {return false;}
-}
-export const onlineEnabled = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base) && validPublicKey(publicKey);
+import publicConfig from '../config/online.public.json';
+import { resolveOnlineConfig } from './onlineConfig';
+const config = resolveOnlineConfig(import.meta.env, publicConfig);
+const base = config.url;
+const publicKey = config.publishableKey;
+export const onlineEnabled = config.enabled;
 export interface OnlineProfile {id: string; username: string; has_avatar: boolean; avatar_version: number; is_creator: boolean;}
 export interface Friendship {request_id: string; requester_id: string; receiver_id: string; status: 'pending'|'accepted'; other_id: string; username: string; has_avatar: boolean; avatar_version: number; is_creator: boolean;}
 interface Session {access_token: string; refresh_token: string; expires_at: number; user: {id: string; email?: string};}

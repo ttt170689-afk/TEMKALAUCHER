@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { restoreNative } from "./build-tools/restore-native.mjs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,8 +14,10 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({ mode }) => {
   restoreNative(__dirname);
   const env = loadEnv(mode, process.cwd(), "VITE_TEMKA_");
-  const url = env.VITE_TEMKA_SUPABASE_URL || "";
-  const key = env.VITE_TEMKA_SUPABASE_ANON_KEY || "";
+  const defaults = JSON.parse(fs.readFileSync(new URL('./src/config/online.public.json', import.meta.url), 'utf8'));
+  const override = Boolean(env.VITE_TEMKA_SUPABASE_URL?.trim() || env.VITE_TEMKA_SUPABASE_ANON_KEY?.trim());
+  const url = String((override ? env.VITE_TEMKA_SUPABASE_URL : defaults.url) || '').trim().replace(/\/+$/, '');
+  const key = String((override ? env.VITE_TEMKA_SUPABASE_ANON_KEY : defaults.publishableKey) || '').trim();
   if (url || key) {
     let publicKey = /^sb_publishable_[\w-]+$/.test(key);
     try { publicKey ||= JSON.parse(Buffer.from(key.split(".")[1] || "", "base64url").toString()).role === "anon"; } catch { /* not a legacy anon key */ }
