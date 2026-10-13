@@ -8,6 +8,7 @@ export const CHANGE_LABELS: Record<ChangeKind,string> = {added:'Добавлен
 // Update these notes intentionally when preparing the next release.
 export const RELEASE_NOTES: ReleaseNote[] = [
  {version:APP_VERSION,date:'2026-10-13',current:true,title:'Большое обновление: друзья и понятный профиль',summary:'Отдельный раздел друзей, имя + @юзернейм и единое состояние аккаунта на всех экранах.',changes:[
+ {kind:'fixed',text:'Исправлена проверка восстановленного файла при разных переводах строк Windows/Linux. Добавлены отдельные LF, CRLF и смешанные сценарии без отключения CI.'},
  {kind:'fixed',text:'Исправлена остановка сборки на проверке сохранения имени. Актуальный Electron smoke восстанавливается после подстановки старого шаблона Publisher; проверки не отключены.'},
  {kind:'added',text:'Раздел «Друзья»: кнопка «Добавить друга», поиск по полному @юзернейму, отдельные списки друзей, входящих и исходящих заявок.'},
  {kind:'added',text:'Имя и онлайн-юзернейм в шапке, боковом меню и профиле. Копирование юзернейма для приглашения друзей.'},

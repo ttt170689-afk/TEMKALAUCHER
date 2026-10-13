@@ -16,8 +16,8 @@
     "tests/folder-picker.test.cjs": "3057eee71223203a477c08c30e4013fb55a5a9a2a105480f9ee7ec05b8470506",
     "tests/native-bundle.test.cjs": "46fca6d74e1f0b5ec38b92888bb9fa4dbf2b6c1510beb252a50554e106d114cb",
     "tests/beta-contract.test.cjs": "5523dfd7d266a8c908f6616d3b9b5a3d047e0207a1b6460b1353e7ace2d05271",
-    "README.md": "63a5cc6db40939c114261a2a91104a4399309978f621183751d3158e49a378e0",
+    "README.md": "6dc07782ebd3476626851cd27a3a3282159f6e8ae64d11f21d24eda03e5ac1c8",
     "scripts/smoke-electron.cjs": "16135ea170c07e7c40a1e1d6e12deb35117da4f5f0ff16fe400b77f7f56320dd",
-    "tests/ci-smoke.test.cjs": "e5c3e27af3a4925ccb35c56a32615699a14aba7584beb961a68328e69fd40092"
+    "tests/ci-smoke.test.cjs": "e89074b4648bf8158dc58e19c1213eea76ade8c962b29358bec872dcbe7f75d8"
   }
 }
