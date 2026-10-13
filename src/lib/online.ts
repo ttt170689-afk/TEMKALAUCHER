@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { readFriendships } from './friendContract';
+import { readFriendships, readOnlineProfiles } from './friendContract';
 import { isCustomAvatar } from './avatar';
 import {readBetaStatus,readBetaResult,validateBetaCode,isGame} from './betaContract';
 import type {BetaRequest,BetaCode,IssuedBetaCode} from './betaContract';
@@ -8,6 +8,7 @@ import publicConfig from '../config/online.public.json';
 import { resolveOnlineConfig } from './onlineConfig';
 const config = resolveOnlineConfig(import.meta.env, publicConfig);
 const base = config.url;
+export const onlineProject = base;
 const publicKey = config.publishableKey;
 export const onlineEnabled = config.enabled;
 export interface OnlineProfile {id: string; username: string; has_avatar: boolean; avatar_version: number; is_creator: boolean;}
@@ -56,6 +57,7 @@ export class CloudClient {
       const text = await response.text();
       let data; try {data = text ? JSON.parse(text) : null;} catch {throw new Error('Сервер вернул некорректный ответ.');}
       if (!response.ok) {
+        if(response.status===409)throw Error('Запись уже существует. Обнови список перед повтором.');
         if (response.status === 429) throw new Error('Слишком много запросов. Подожди перед повторной попыткой.');
         const message = String(data?.msg || data?.message || data?.error_description || data?.error || `Ошибка сервера ${response.status}`).slice(0, 300);
         throw new Error(message);
@@ -106,16 +108,21 @@ export class CloudClient {
   async issueBeta(game:string,approval:boolean,limit:number,hours:number):Promise<IssuedBetaCode> {const r=await this.request('/rest/v1/rpc/beta_admin_issue',{method:'POST',body:JSON.stringify({p_game:game,p_approval:approval,p_limit:limit,p_hours:hours})});if(!r||r.game_id!==game||!UUID.test(r.id||'')||typeof r.code!=='string')throw Error('Сервер не подтвердил создание кода.');return r;}
   async decideBeta(id:string,state:'approved'|'rejected'|'revoked') {if(!UUID.test(id))throw Error('Некорректная заявка.');const r=await this.request('/rest/v1/rpc/beta_admin_decide',{method:'POST',body:JSON.stringify({p_request:id,p_state:state})});if(r?.id!==id||r?.state!==state)throw Error('Сервер не подтвердил решение.');}
   async revokeBetaCode(id:string) {if(!UUID.test(id))throw Error('Некорректный код.');await this.request('/rest/v1/rpc/beta_admin_revoke_code',{method:'POST',body:JSON.stringify({p_id:id})});}
-  async ownProfile(): Promise<OnlineProfile | null> {const rows = await this.request('/rest/v1/rpc/my_profile', {method:'POST',body:'{}'}); return rows?.[0] || null;}
+  async ownProfile(): Promise<OnlineProfile | null> {
+    const me=this.session?.user.id;
+    const rows=readOnlineProfiles(await this.request('/rest/v1/rpc/my_profile',{method:'POST',body:'{}'}));
+    if(rows[0]&&rows[0].id!==me)throw Error('Сервер вернул профиль другого аккаунта.');
+    return rows[0]||null;
+  }
   async saveUsername(username: string) {
     const name = username.trim(); if(!/^[a-zа-яё0-9_]{3,25}$/i.test(name)) throw new Error('Юзернейм: 3–25 букв, цифр или подчёркиваний.');
     await this.requireVerified();
-    await this.request('/rest/v1/rpc/set_username', {method:'POST',body:JSON.stringify({new_username:name})});
+    await this.request('/rest/v1/rpc/set_username', {method:'POST',body:JSON.stringify({new_username:name})});notifyOnline(this.localId);
   }
   async search(username: string): Promise<OnlineProfile[]> {
     const name = username.trim().replace(/^@/, ''); if(!/^[a-zа-яё0-9_]{3,25}$/i.test(name)) throw new Error('Введи полный юзернейм: 3–25 букв, цифр или подчёркиваний.');
     await this.requireVerified();
-    return await this.request('/rest/v1/rpc/find_player', {method:'POST',body:JSON.stringify({exact_username:name})});
+    return readOnlineProfiles(await this.request('/rest/v1/rpc/find_player', {method:'POST',body:JSON.stringify({exact_username:name})}));
   }
   async friends(): Promise<Friendship[]> {
     const me=this.session?.user.id;if(!me)throw Error('Сначала подтверди почту.');
@@ -127,7 +134,10 @@ export class CloudClient {
     if(!UUID.test(receiver))throw Error('Некорректный игрок.');
     await this.requireVerified();
     if(receiver===this.session!.user.id)throw Error('Нельзя добавить в друзья себя.');
-    await this.request('/rest/v1/friendships',{method:'POST',body:JSON.stringify({requester_id:this.session!.user.id,receiver_id:receiver,status:'pending'})});notifyOnline(this.localId);
+    const me=this.session!.user.id;
+    const rows=await this.request('/rest/v1/friendships',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({requester_id:me,receiver_id:receiver,status:'pending'})});
+    if(!Array.isArray(rows)||rows.length!==1||!UUID.test(rows[0].id)||rows[0].requester_id!==me||rows[0].receiver_id!==receiver||rows[0].status!=='pending')throw Error('Сервер не подтвердил отправку заявки. Обнови список.');
+    notifyOnline(this.localId);
   }
   async accept(id: string) {
     if(!UUID.test(id))throw Error('Некорректная заявка.');await this.requireVerified();
@@ -144,13 +154,15 @@ export class CloudClient {
     const decoded = atob(data.split(',')[1]); const bytes = Uint8Array.from(decoded, c=>c.charCodeAt(0));
     // prepareAvatar uses WebP in Chromium; never label other formats as WebP.
     if(!data.startsWith('data:image/webp;')) throw new Error('Загрузи картинку заново для преобразования в WebP.');
+    await this.requireVerified();
     const id = this.session!.user.id;
     await this.request(`/storage/v1/object/avatars/${id}/avatar.webp`, {method:'POST',headers:{'Content-Type':'image/webp','x-upsert':'true'},body:new Blob([bytes],{type:'image/webp'})});
-    await this.request('/rest/v1/rpc/set_avatar_visible', {method:'POST',body:'{"visible":true}'});
+    await this.request('/rest/v1/rpc/set_avatar_visible', {method:'POST',body:'{"visible":true}'});notifyOnline(this.localId);
   }
   async removePublishedAvatar() {
+    await this.requireVerified();
     await this.request('/rest/v1/rpc/set_avatar_visible', {method:'POST',body:'{"visible":false}'});
-    await this.request('/storage/v1/object/avatars', {method:'DELETE',body:JSON.stringify({prefixes:[`${this.session!.user.id}/avatar.webp`]})});
+    await this.request('/storage/v1/object/avatars', {method:'DELETE',body:JSON.stringify({prefixes:[`${this.session!.user.id}/avatar.webp`]})});notifyOnline(this.localId);
   }
   async logout() {
     const session=this.session;this.saveSession(null);

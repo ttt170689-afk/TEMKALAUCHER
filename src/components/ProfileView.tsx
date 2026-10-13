@@ -1,4 +1,5 @@
 import { hasLocalCreatorSignature, LOCAL_CREATOR_SIGNATURE_NOTE } from "../lib/creatorIdentity";
+import OnlineIdentity from "./OnlineIdentity";
 import FriendsPanel from "./FriendsPanel";
 import { prepareAvatar, isCustomAvatar } from "../lib/avatar";
 import { USERNAME_MAX_LENGTH } from "../lib/username";
@@ -9,7 +10,7 @@ import { useWaitlist } from "../lib/waitlist";
 import { useToast } from "../lib/toast";
 import { Reveal, MaskReveal, glareMove } from "./ui";
 
-export default function ProfileView() {
+export default function ProfileView({onFriends}:{onFriends:()=>void}) {
   const { user, updateProfile, rename, logout, deleteAccount } = useAuth();
   const { entries, leave } = useWaitlist();
   const { push } = useToast();
@@ -28,7 +29,7 @@ export default function ProfileView() {
       if (operation !== avatarOperation.current) return;
       const error = updateProfile({avatar});
       if (error) throw new Error(error);
-      push("ok", "Аватарка сохранена", "Изображение сохранено на этом устройстве. Публикация для друзей — отдельной кнопкой ниже.");
+      push("ok", "Аватарка сохранена", "Изображение сохранено на этом устройстве. Публикация для друзей — в настройках онлайн-профиля.");
     } catch (error) { if (operation !== avatarOperation.current) return; push("warn", "Не удалось сохранить аватарку", String(error instanceof Error ? error.message : error)); }
     finally {if (operation === avatarOperation.current) setAvatarBusy(false);}
   };
@@ -42,10 +43,10 @@ export default function ProfileView() {
   const saveName = () => {
     const e = rename(nameDraft);
     if (e) {
-      push("warn", "Не получилось сменить ник", e);
+      push("warn", "Не получилось сменить имя", e);
       return;
     }
-    push("ok", "Ник обновлён", `Теперь ты — ${nameDraft.trim()}`);
+    push("ok", "Имя обновлено", `Теперь ты — ${nameDraft.trim()}`);
   };
 
   const saveStatus = () => {
@@ -90,21 +91,18 @@ export default function ProfileView() {
                   {creatorSignature ? "Разработчик" : titleName}
                 </span>
               </div>
+              <OnlineIdentity/>
               {creatorSignature && <p className="mt-1 text-[11px] text-[var(--tx3)]" title={LOCAL_CREATOR_SIGNATURE_NOTE}>Создатель Temka Studio · локальная подпись, без онлайн-прав</p>}
               <p className="mt-1 text-[13.5px] font-semibold text-[var(--tx2)]">{p.status}</p>
               <div className="font-mono2 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-[var(--tx3)]">
-                <span>{user.email}</span>
+                <span title="Почта, указанная при локальной регистрации">Локальная почта: {user.email}</span>
                 <span className="text-[var(--accent)]">·</span>
                 <span>
-                  в парке с {created.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
-                </span>
-                <span className="text-[var(--accent)]">·</span>
-                <span>
-                  XP и уровни отключены
+                  профиль с {created.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
                 </span>
               </div>
             </div>
-            <button onClick={logout} className="btn-ghost flex-none self-start px-5 py-2.5 text-[13px] sm:self-auto">
+            <button onClick={()=>{const error=logout();if(error)push("warn","Не удалось выйти",error);}} className="btn-ghost flex-none self-start px-5 py-2.5 text-[13px] sm:self-auto">
               Выйти из аккаунта
             </button>
           </div>
@@ -113,7 +111,7 @@ export default function ProfileView() {
         </div>
       </Reveal>
 
-      <FriendsPanel key={user.id} localUser={user} />
+      <FriendsPanel key={user.id} localUser={user} onFriends={onFriends} />
 
       {/* ===== кастомизация ===== */}
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
@@ -189,14 +187,14 @@ export default function ProfileView() {
             <div className="panel p-6">
               <p className="font-mono2 text-[10.5px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">данные</p>
               <h2 className="font-display mt-1 text-[20px] font-extrabold tracking-tight">
-                <MaskReveal>Ник и статус</MaskReveal>
+                <MaskReveal>Имя и статус</MaskReveal>
               </h2>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Ник · {nameDraft.length}/{USERNAME_MAX_LENGTH}</span>
+                <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider text-[var(--tx3)]">Имя на устройстве · {nameDraft.length}/{USERNAME_MAX_LENGTH}</span>
                 <div className="flex gap-2">
-                  <input className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]" value={nameDraft} maxLength={USERNAME_MAX_LENGTH} onChange={(e) => setNameDraft(e.target.value)} />
+                  <input aria-label="Имя на устройстве" className="input-tl min-w-0 flex-1 px-4 py-2.5 text-[13.5px]" value={nameDraft} maxLength={USERNAME_MAX_LENGTH} onChange={(e) => setNameDraft(e.target.value)} />
                   <button onClick={saveName} className="btn-primary flex-none px-4 py-2.5 text-[12.5px]" disabled={nameDraft.trim() === user.username}>
-                    Сохранить
+                    Сохранить имя
                   </button>
                 </div>
               </label>
@@ -276,14 +274,14 @@ export default function ProfileView() {
       <Reveal delay={100}>
         <div className="panel mt-8 flex flex-wrap items-center justify-between gap-4 border-[color-mix(in_srgb,var(--danger)_30%,var(--line))] p-5">
           <div>
-            <p className="text-[14px] font-extrabold text-[var(--danger)]">Удаление аккаунта</p>
-            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Профиль «{user.username}» будет стёрт с этого устройства. Общий локальный вишлист и исторические данные лаунчера сохранятся.</p>
+            <p className="text-[14px] font-extrabold text-[var(--danger)]">Удаление локального профиля</p>
+            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Профиль «{user.username}» будет стёрт с этого устройства. Общий вишлист сохранится. Онлайн-аккаунт и друзья не удаляются.</p>
           </div>
           {confirmDel ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  deleteAccount();
+                  const error=deleteAccount();if(error)push("warn","Не удалось удалить профиль",error);
                 }}
                 className="flex items-center gap-2 rounded-[10px] bg-[var(--danger)] px-4 py-2.5 text-[12.5px] font-extrabold text-white transition-transform hover:scale-[1.03]"
               >

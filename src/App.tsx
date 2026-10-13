@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SettingsProvider, useSettings } from "./lib/settings";
 import { ToastProvider } from "./lib/toast";
-import { ProgressProvider, useProgress } from "./lib/progress";
+import { ProgressProvider } from "./lib/progress";
 import { APP_VERSION, runtimeMode } from "./lib/version";
 import { useAppLock } from "./lib/appLock";
 import { initNeutralino } from "./lib/neutralino";
@@ -15,6 +15,9 @@ import Boot from "./components/Boot";
 import AuthView from "./components/AuthView";
 import FriendNotifications from "./components/FriendNotifications";
 import ProfileView from "./components/ProfileView";
+import FriendsView from "./components/FriendsView";
+import OnlineIdentity from "./components/OnlineIdentity";
+import {OnlineAccountProvider} from "./lib/onlineAccount";
 import UpdateBanner from "./components/UpdateBanner";
 import UpdateOverlay from "./components/UpdateOverlay";
 import { AvatarSvg } from "./components/AvatarSvg";
@@ -33,11 +36,12 @@ const VIEW_TITLES: Record<View, { title: string; sub: string }> = {
   home: { title: "Главная", sub: "обзор миров Temka" },
   news: { title: "Новости", sub: "что добавлено, исправлено и убрано" },
   library: { title: "Библиотека", sub: "игры и дополнения" },
+  friends: { title: "Друзья", sub: "люди, приглашения и твой юзернейм" },
   profile: { title: "Профиль", sub: "аккаунт и кастомизация" },
   settings: { title: "Настройки", sub: "конфигурация лаунчера" },
 };
 
-const ALL_VIEWS: View[] = ["home", "news", "library", "profile", "settings"];
+
 
 function StatusBar() {
   const [clock, setClock] = useState(() => new Date());
@@ -72,10 +76,12 @@ function Shell() {
     initNeutralino();
   }, []);
   const scrollBarRef = useRef<HTMLDivElement>(null);
-  const visitedRef = useRef<Set<View>>(new Set());
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(()=>{if(contentRef.current)contentRef.current.scrollTop=0;},[view]);
+
   const { s } = useSettings();
   const { user } = useAuth();
-  const { grant, unlockAch, daily } = useProgress();
+
 
   const setView = useCallback(
     (v: View) => {
@@ -142,15 +148,6 @@ function Shell() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // награды за исследование лаунчера
-  useEffect(() => {
-    if (view === "library") grant("view-library", 10, "Первый визит в библиотеку");
-    if (view === "news") grant("view-news", 5, "Первый визит в новости");
-    if (view === "settings") grant("view-settings", 5, "Первый визит в настройки");
-    visitedRef.current.add(view);
-    if (ALL_VIEWS.every((v) => visitedRef.current.has(v))) unlockAch("explorer");
-  }, [view, grant, unlockAch]);
-
   const openGame = (id: string) => {
     setSelectedId(id);
     setView("library");
@@ -172,7 +169,7 @@ function Shell() {
           onDone={() => {
             setBooting(false);
             sfx.boot();
-            if (user) daily();
+
           }}
         />
       )}
@@ -180,7 +177,7 @@ function Shell() {
       {!user && !booting && <AuthView />}
 
       {user && (
-        <>
+        <OnlineAccountProvider key={user.id} localId={user.id}>
 
       <div className="relative z-10 flex min-h-0 flex-1">
         <Sidebar view={view} setView={setView} />
@@ -207,21 +204,21 @@ function Shell() {
               />
             </div>
 
-            <FriendNotifications key={user.id} localId={user.id} onProfile={() => setView("profile")} />
+            <FriendNotifications key={user.id} localId={user.id} onProfile={() => setView("profile")} onFriends={()=>setView("friends")} />
 
             {user && (
               <button onClick={() => setView("profile")} className="hidden items-center gap-2.5 rounded-full transition-opacity hover:opacity-85 sm:flex" aria-label="Открыть профиль">
                 <AvatarSvg variant={user.profile.avatar} color={user.profile.color} size={36} />
                 <span className="leading-tight text-left">
-                  <span className="block text-[12.5px] font-extrabold">{user.username}</span>
-                  <span className="font-mono2 block text-[9.5px] font-bold uppercase tracking-widest text-[var(--tx3)]">локальный профиль</span>
+                  <span className="block max-w-[180px] truncate text-[12.5px] font-extrabold">{user.username}</span>
+                  <OnlineIdentity/>
                 </span>
               </button>
             )}
           </header>
 
           {/* content */}
-          <main
+          <main ref={contentRef}
             className="tl-scroll relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
             onScroll={(e) => {
               const el = e.currentTarget;
@@ -251,7 +248,8 @@ function Shell() {
                 {view === "library" && (
                   <LibraryView onProfile={()=>setView("profile")} selectedId={selectedId} setSelectedId={setSelectedId} query={query} />
                 )}
-                {view === "profile" && <ProfileView />}
+                {view === "friends" && <FriendsView onProfile={()=>setView("profile")}/>}
+                {view === "profile" && <ProfileView onFriends={()=>setView("friends")} />}
                 {view === "settings" && <SettingsView />}
               </motion.div>
             </AnimatePresence>
@@ -259,7 +257,7 @@ function Shell() {
         </div>
       </div>
           <UpdateOverlay />
-        </>
+        </OnlineAccountProvider>
       )}
 
       

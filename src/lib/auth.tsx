@@ -67,10 +67,10 @@ interface Ctx {
   user: Account | null;
   register: (username: string, email: string, pass: string) => Promise<string | null>;
   login: (ident: string, pass: string) => Promise<string | null>;
-  logout: () => void;
+  logout: () => string | null;
   updateProfile: (patch: Partial<Profile>) => string | null;
   rename: (username: string) => string | null;
-  deleteAccount: () => void;
+  deleteAccount: () => string | null;
 }
 
 const AuthCtx = createContext<Ctx | null>(null);
@@ -78,13 +78,10 @@ const AuthCtx = createContext<Ctx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<Store>(load);
 
-  const persist = useCallback((next: Store) => {
-    setStore(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* noop */
-    }
+  const persist = useCallback((next: Store):string|null => {
+    try {localStorage.setItem(KEY,JSON.stringify(next));}
+    catch {return "Не удалось сохранить профиль. Хранилище недоступно или заполнено.";}
+    setStore(next);return null;
   }, []);
 
   const register = useCallback(
@@ -107,8 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
         profile: { avatar: "cube", color: "#ff7a2f", title: "newbie", status: "Новый игрок в мирах Temka" },
       };
-      persist({ users: [...store.users, acc], session: acc.id });
-      return null;
+      return persist({ users: [...store.users, acc], session: acc.id });
     },
     [store, persist]
   );
@@ -122,14 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!acc) return "Аккаунт не найден. Проверьте ник или почту.";
       const h = await hash(pass);
       if (h !== acc.passHash) return "Неверный пароль. Попробуйте ещё раз.";
-      persist({ ...store, session: acc.id });
-      return null;
+      return persist({ ...store, session: acc.id });
     },
     [store, persist]
   );
 
   const logout = useCallback(() => {
-    persist({ ...store, session: null });
+    return persist({ ...store, session: null });
   }, [store, persist]);
 
   const updateProfile = useCallback(
@@ -158,18 +153,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isBadName(name)) return "Имя заблокировано фильтром.";
       if (store.users.some((u) => u.id !== store.session && u.username.toLowerCase() === name.toLowerCase()))
         return "Этот ник уже занят.";
-      persist({
+      return persist({
         ...store,
         users: store.users.map((u) => (u.id === store.session ? { ...u, username: name } : u)),
       });
-      return null;
     },
     [store, persist]
   );
 
   const deleteAccount = useCallback(() => {
-    if (!store.session) return;
-    persist({ users: store.users.filter((u) => u.id !== store.session), session: null });
+    if (!store.session) return null;
+    return persist({ users: store.users.filter((u) => u.id !== store.session), session: null });
   }, [store, persist]);
 
   const user = useMemo(

@@ -12,3 +12,20 @@ export function readFriendships(value: unknown, me: string): Friendship[] {
 export function incomingRequests(rows: Friendship[], me: string): Friendship[] {
   return rows.filter(row=>row.status==='pending'&&row.receiver_id===me);
 }
+export function readOnlineProfiles(value:unknown): import('./online').OnlineProfile[] {
+  if(!Array.isArray(value)||value.length>1)throw Error('Сервер не подтвердил профиль.');
+  return value.map(r=>{
+    if(!r||!uuid.test(r.id)||typeof r.username!=='string'||!/^[a-zа-яё0-9_]{3,25}$/i.test(r.username)||typeof r.has_avatar!=='boolean'||typeof r.is_creator!=='boolean'||!Number.isSafeInteger(r.avatar_version)||r.avatar_version<0)throw Error('Сервер вернул некорректный профиль.');
+    return r;
+  });
+}
+export type FriendTab='friends'|'incoming'|'outgoing';
+export function groupFriends(rows:Friendship[],me:string):Record<FriendTab,Friendship[]> {
+  return {friends:rows.filter(r=>r.status==='accepted').sort((a,b)=>a.username.localeCompare(b.username,'ru')),incoming:incomingRequests(rows,me),outgoing:rows.filter(r=>r.status==='pending'&&r.requester_id===me)};
+}
+export function onlineError(error:unknown):string {
+  const text=error instanceof Error?error.message:String(error);
+  if(/failed to fetch|networkerror|load failed|network request failed/i.test(text))return 'Нет связи с сервером. Проверь интернет и повтори попытку.';
+  if(/token.*expired|otp.*expired|invalid.*otp/i.test(text))return 'Код неверный или устарел. Запроси новый и введи последний код из письма.';
+  return text.slice(0,300)||'Не удалось связаться с сервером.';
+}

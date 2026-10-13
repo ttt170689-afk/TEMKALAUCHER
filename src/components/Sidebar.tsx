@@ -1,25 +1,26 @@
 import { APP_VERSION } from "../lib/version";
 import { hasLocalCreatorSignature, LOCAL_CREATOR_SIGNATURE_NOTE } from "../lib/creatorIdentity";
 import { motion } from "framer-motion";
-import { useToast } from "../lib/toast";
+import OnlineIdentity from "./OnlineIdentity";
 import { useAuth } from "../lib/auth";
 import { AvatarSvg } from "./AvatarSvg";
-import { IconHome, IconLibrary, IconSettings, IconLock, IconNews, IconUser } from "./ui";
+import { IconHome, IconLibrary, IconSettings, IconFriends, IconNews, IconUser } from "./ui";
 
-export type View = "home" | "news" | "library" | "profile" | "settings";
+export type View = "home" | "news" | "library" | "friends" | "profile" | "settings";
 
 const NAV: { id: View; label: string; icon: () => React.ReactNode }[] = [
   { id: "home", label: "Главная", icon: IconHome },
   { id: "news", label: "Новости", icon: IconNews },
   { id: "library", label: "Библиотека", icon: IconLibrary },
+  { id: "friends", label: "Друзья", icon: IconFriends },
   { id: "profile", label: "Профиль", icon: IconUser },
   { id: "settings", label: "Настройки", icon: IconSettings },
 ];
 
-const SOON = ["Магазин", "Моды"];
+
 
 export default function Sidebar({ view, setView }: { view: View; setView: (v: View) => void }) {
-  const { push } = useToast();
+
   const { user } = useAuth();
 
   return (
@@ -39,7 +40,7 @@ export default function Sidebar({ view, setView }: { view: View; setView: (v: Vi
       </div>
 
       {/* nav */}
-      <nav className="mt-2 flex flex-col gap-1 px-3">
+      <nav aria-label="Разделы лаунчера" className="mt-2 flex flex-col gap-1 px-3">
         <p className="font-mono2 mb-1 hidden px-2 text-[9.5px] font-bold uppercase tracking-[0.24em] text-[var(--tx3)] lg:block">
           Меню
         </p>
@@ -75,26 +76,6 @@ export default function Sidebar({ view, setView }: { view: View; setView: (v: Vi
         })}
       </nav>
 
-      {/* soon */}
-      <div className="mt-6 hidden flex-col gap-1 px-3 lg:flex">
-        <p className="font-mono2 mb-1 px-2 text-[9.5px] font-bold uppercase tracking-[0.24em] text-[var(--tx3)]">
-          Скоро
-        </p>
-        {SOON.map((s) => (
-          <button
-            key={s}
-            onClick={() => push("info", `«${s}» — в разработке`, "Раздел появится в следующих обновлениях лаунчера.")}
-            className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-bold text-[var(--tx3)] transition-colors hover:bg-[var(--bg2)] hover:text-[var(--tx2)]"
-          >
-            <IconLock />
-            <span>{s}</span>
-            <span className="font-mono2 ml-auto text-[8.5px] font-bold uppercase tracking-widest text-[var(--tx3)]">
-              soon
-            </span>
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1" />
 
       {/* user card */}
@@ -116,10 +97,11 @@ export default function Sidebar({ view, setView }: { view: View; setView: (v: Vi
           )}
           <div className="hidden min-w-0 flex-1 lg:block">
             <p className="truncate text-[13px] font-extrabold leading-tight">{user?.username ?? "Гость"}</p>
+            <OnlineIdentity/>
             {hasLocalCreatorSignature(user?.username) && <p className="mt-1 text-[9px] text-[var(--accent)]" title={LOCAL_CREATOR_SIGNATURE_NOTE}>Разработчик · локально</p>}
             <p className="mt-1 text-[10px] text-[var(--tx3)]">АЛЬФА · {APP_VERSION}</p>
           </div>
-          <span className="ml-auto hidden h-2 w-2 flex-none rounded-full bg-[var(--accent-2)] shadow-[0_0_8px_var(--accent-2)] lg:block" />
+
         </button>
       </div>
     </aside>

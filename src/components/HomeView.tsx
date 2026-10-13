@@ -143,8 +143,8 @@ export default function HomeView({
           </h1>
           <Reveal delay={120}>
             <p className="mt-5 max-w-[46ch] text-[15px] leading-relaxed text-[var(--tx2)]">
-              TemkaWorld и Fantazia RP рождаются прямо сейчас — следите за готовностью в реальном времени
-              и первыми узнавайте о DLC. Обе игры пока{" "}
+              TemkaWorld и Fantazia RP — миры от temka_play. Готовность указана автором
+              и обновляется вместе с лаунчером. Обе игры пока{" "}
               <span className="font-bold text-[var(--tx)]">в разработке</span>, запуск откроется с релизом.
             </p>
           </Reveal>

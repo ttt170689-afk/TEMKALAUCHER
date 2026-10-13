@@ -40,7 +40,7 @@ export default function NewsView() {
       </article>)}
       {!notes.length&&<div className="panel px-5 py-10 text-center"><h3 className="font-display text-[18px] font-bold">Ничего не найдено</h3><p className="mt-2 text-[12px] text-[var(--tx3)]">Попробуй другое слово или сбрось фильтры.</p><button className="btn-ghost mt-4 px-4 py-2 text-[12px]" onClick={()=>{setQuery('');setKind('all');}}>Сбросить фильтры</button></div>}
     </div>
-    <aside className="mt-5 rounded-xl border border-[var(--line)] p-4 text-[12px] leading-relaxed text-[var(--tx3)]"><strong className="text-[var(--tx2)]">Ещё нужно подключение:</strong> общая база друзей и отправка кодов на почту. Вход в игры через лаунчер — следующий этап, не готовая функция этой версии.</aside>
+    <aside className="mt-5 rounded-xl border border-[var(--line)] p-4 text-[12px] leading-relaxed text-[var(--tx3)]"><strong className="text-[var(--tx2)]">Закрытая бета:</strong> код и решение автора проверяются сервером. Файлы игры и запуск ещё не подключены. Вход в саму игру — отдельный следующий этап.</aside>
     <footer className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-5"><p className="max-w-[58ch] text-[11px] leading-relaxed text-[var(--tx3)]">История хранится внутри лаунчера и работает без интернета. Новые записи приходят вместе с обновлениями. Это не автоматическая подписка на уведомления.</p><a href="https://t.me/temka_play_official1" target="_blank" rel="noopener noreferrer" className="btn-ghost px-4 py-2 text-[12px]">Канал автора ↗</a></footer>
   </div>;
 }
