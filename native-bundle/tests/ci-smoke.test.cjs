@@ -14,12 +14,23 @@ test('protected native smoke matches accessible local-name field and save button
  assert(!/name:\s*'Сохранить'\s*,\s*exact:\s*true/.test(smoke));
  assert(!smoke.includes("locator('input[maxlength="));
 });
-test('native smoke requires all six destinations, avatar and new friends/beta UI',()=>{
+test('native smoke requires all eight destinations, avatar and new friends/beta UI',()=>{
  const smoke=protectedSmoke();
- for(const label of ['Главная','Новости','Библиотека','Друзья','Профиль','Настройки'])assert(smoke.includes(`'${label}'`));
+ for(const label of ['Главная','Новости','Библиотека','Магазин','Dev','Друзья','Профиль','Настройки'])assert(smoke.includes(`'${label}'`));
  for(const required of ["phase('custom avatar upload and persistence')",".setInputFiles(","[data-friends-page]","name:'Уведомления'","name:'Бета-тест'","window.require","__trayEventSeen","phase('system clipboard IPC","clipboard.readText()","Скопировать свой юзернейм","copy failure does not claim success","partial friend search and public player cards","one avatar picker and editable public identity","new library selection filters tabs and honest game statistics"])assert(smoke.includes(required),required);
  assert(!smoke.includes("if (await page.getByLabel('Загрузить свою аватарку'"));
  assert(smoke.includes("route(/^https?:/"));assert(smoke.includes('no real OTP'));
+});
+test('protected smoke navigation list exactly matches the real sidebar, including Shop and Dev',()=>{
+ const smoke=protectedSmoke(),sidebar=fs.readFileSync(path.join(root,'src/components/Sidebar.tsx'),'utf8');
+ const list=smoke.match(/const labels = \[([^\]]+)\]/);assert(list,'missing explicit destination contract');
+ const expected=[...list[1].matchAll(/'([^']+)'/g)].map(match=>match[1]);
+ const actual=[...sidebar.matchAll(/\{\s*id:\s*"[^"]+",\s*label:\s*"([^"]+)"/g)].map(match=>match[1]);
+ assert.deepEqual(expected,actual);assert.equal(new Set(expected).size,expected.length);
+ assert(expected.includes('Магазин')&&expected.includes('Dev'));
+ assert(smoke.includes("phase('shop and Dev navigation stay safe in local mode')"));
+ assert(smoke.includes('Local mode must not call Dev gateway'));
+ assert(smoke.includes("button.getAttribute('aria-label')"));
 });
 test('both workflow platforms keep the mandatory native smoke gate before packaging',()=>{
  const yml=fs.readFileSync(path.join(root,'.github/workflows/windows.yml'),'utf8'),pkg=require('../package.json');
