@@ -27,6 +27,7 @@ test('native smoke requires all eight destinations, avatar and new friends/beta 
 test('native smoke isolates networking below renderer and auxiliary-window lifetimes',()=>{
  const smoke=protectedSmoke(),helper=fs.readFileSync(path.join(root,'native-bundle/scripts/smoke-network.cjs'),'utf8');
  assert(!smoke.includes('app.context().route('));
+ assert(smoke.includes("phase('Dev owner cannot manage invitations from launcher')"));
  assert(smoke.includes('--host-resolver-rules=MAP * ~NOTFOUND'));assert(smoke.includes('--no-proxy-server'));
  assert(smoke.includes("phase('session network isolation survives foreign window destruction and reload')"));
  assert(smoke.includes('await probe();\n    await page.reload();\n    await probe();'));

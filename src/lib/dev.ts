@@ -33,8 +33,6 @@ async function call(client:CloudClient,action:string,extra:Record<string,string>
 }
 export async function devStatus(client:CloudClient){return readDevAccess(await(await call(client,'status')).json());}
 export async function redeemDev(client:CloudClient,code:string){if(code.length>100||!/^TEMKADEV[A-F0-9]{64}$/.test(code.toUpperCase().replace(/[\s-]/g,'')))throw Error('Вставь полный Dev-код TEMKADEV-… от владельца.');return readDevAccess(await(await call(client,'redeem',{code:code.trim()})).json());}
-export async function issueDev(client:CloudClient){const d=await(await call(client,'issue')).json();if(d?.ok!==true||!/^TEMKADEV-[A-F0-9]{64}$/.test(d.code)||!Number.isFinite(Date.parse(d.expires_at)))throw Error('Не удалось подтвердить выдачу приглашения. Обнови доступ перед повторной выдачей.');return {code:d.code as string,expires_at:d.expires_at as string};}
-export async function revokeDevTester(client:CloudClient){const d=await(await call(client,'revoke_tester')).json();if(d?.ok!==true)throw Error('Отзыв доступа не подтверждён.');}
 export async function devBuilds(client:CloudClient){return readDevBuilds(await(await call(client,'builds')).json());}
 export async function downloadDev(client:CloudClient,build:DevBuild):Promise<Blob>{
  readDevBuilds({ok:true,builds:[build]});const response=await call(client,'download',{buildId:build.id},true);const bytes=await response.arrayBuffer();

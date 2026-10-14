@@ -1,35 +1,13 @@
-# ПК 1.9.6 — Windows checkout / CRLF
+# ПК 1.9.7 — Dev admin UI removal
 
-## Реальный запуск 1.9.5
+- DevView не содержит выдачи/копирования нового приглашения и отзыва tester даже для owner. SDK issueDev/revokeDevTester удалены.
+- Dev-клиент оставляет проверку доступа, redeem, каталог и download с прежним Main Auth.
+- Полная Node suite **189/189**; TypeScript/Vite production build PASS.
+- Настоящий Linux Electron 44.7.0 под Xvfb: **20 фаз smoke PASS**. Новая фаза рендерит Dev с server fixture owner:true/allowed:true и проверяет отсутствие админ-кнопок и поля выдачи. Разрешены лишь status/builds Dev-вызовы из этого сценария. Остальные clipboard/Auth/UI/IPC проверки сохранены.
+- LF/CRLF/mixed CI-regression продолжает выполняться, не выключена. DevView/SDK/dev.test защищены native-bundle, 45 файлов, canonical SHA256 manifest.
+- Проверен анонимный READ-ONLY POST status к текущему Dev-шлюзу без Bearer: HTTP401 sign_in_required. Это отрицательная проверка, НЕ тест чужого настоящего аккаунта или реальной выдачи.
+- Серверный код проверен: primary Auth/user даёт UID/email только после подтверждения, RPC доступен service_role, выдача/отзыв требуют owner. SQL/Gateway/RLS не менялись.
+- Новый удалённый CI 1.9.7/нативный Windows здесь не запускались. Publisher должен снова проверить обе платформы. Windows/Linux исправления 1.9.6 сохранены.
+- Реальные OTP/личные токены/инвайт со скриншота не использовались, production mutations отсутствуют. Большой Windows-инсталлятор лаунчера не создавался/не скачивался.
 
-GitHub run 38576529615 (#21), commit bf737b072697c7c1f03a1bde1374b16849949f6b:
-- Linux job: success.
-- Windows build: failure на npm run build / post-restore tests.
-- Publish: skipped.
-
-Linux-исправление сетевой изоляции 1.9.5 прошло удалённый CI. Новое Windows-зависимое падение воспроизведено локально: multiline assertion в tests/ci-smoke.test.cjs искал `await probe();\n ...` в protected smoke, который при CRLF checkout содержит `\r\n`. Это ошибка добавленного теста, не ошибка Vite или рабочего входа.
-
-## Исправление
-
-Protected source читается с канонизацией CRLF → LF. Multiline-проверка сохранена, никаких continue-on-error, удаления теста или отключения платформы.
-
-Предыдущая checkout regression запускала лишь три теста восстановления, поэтому не замечала новый сетевой тест. Теперь для LF, CRLF и mixed запускаются все девять нерекурсивных CI-smoke проверок, включая сетевую. Исключён лишь сам subprocess-spawning тест: отдельный child marker предотвращает рекурсию, а в обычной suite он выполняется. Подлинность protected bundle, checksum, восстановление, sidebar/UI/workflow contracts сохраняются.
-
-Рабочий runtime, Electron session fixture, Auth/backend/Dev/updater не изменены. Номер 1.9.6 нужен, поскольку теги 1.9.4 и 1.9.5 уже созданы.
-
-## Выполненная локальная проверка
-
-- Ошибка старой проверки на CRLF воспроизведена до исправления: ERR_ASSERTION на multiline includes.
-- CI-smoke suite: 10/10; дочерние LF/CRLF/mixed проверки запускают по 9 нерекурсивных тестов.
-- Полная suite: 187/187, без пропусков.
-- TypeScript + production Vite build: PASS.
-- Реальные ProjectFiles.ExtractProject + ApplySupport из Publisher 1.1.1, с его встроенным support.zip, выполнены через C# harness.
-- После импорта 176 текстовых файлов checkout преобразованы в CRLF. Это воспроизводит переносы Windows Git checkout, а не только отдельный искусственный snippet.
-- На этом CRLF checkout: prebuild suite 36/36; Vite restore + TypeScript + обязательная post-restore suite 117/117; production build PASS.
-- Собранный CRLF-проект запущен в настоящем Linux Electron 44.7.0 под Xvfb: все 19 фаз smoke PASS, включая онлайн-профиль, системное копирование, чужой renderer, repeated reload, аватарки/DM/IPC.
-
-## Границы проверки
-
-CRLF checkout проверялся на Linux с Node 22, это НЕ нативный Windows запуск. Новый GitHub CI 1.9.6 здесь не запускался; Windows и Linux jobs должны снова пройти через Publisher. Зелёный удалённый Linux относится к 1.9.5.
-
-Большой Windows-инсталлятор лаунчера не создавался/не скачивался. Реальные OTP и личные токены не использовались; Auth/SQL/GitHub записи не выполнялись. Публикация по-прежнему требует успешных обеих платформ. При read-only проверке тег v1.9.6 отсутствовал; существующие теги не перезаписываются.
+Publisher 1.1.2 проверен отдельно: официальные .NET Framework4.8 references, WinForms UI и server fixtures; Main Auth и Dev owner проверяются отдельно перед действием; существующее запоминание входа сохранено. Реальная Windows/DPAPI/живые owner mutations требуют пользовательской проверки.

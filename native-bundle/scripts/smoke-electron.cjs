@@ -35,6 +35,11 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     const dmPeer=()=>({peer_id:mockOther.id,username:mockOther.username,has_avatar:false,avatar_version:0,is_creator:false,can_send:true,last_message:directMessages.at(-1)?.body||null,last_at:directMessages.at(-1)?.created_at||null,unread:0});
     network = await installSmokeNetwork(app, route=>{
       const request=route.request(),url=request.url();externalRequests.push(url);
+      if(clipboardAccount&&url==='https://zykpirbzgiylkkasrllk.supabase.co/functions/v1/dev-gateway'&&request.headers().authorization==='Bearer clipboard-smoke-token'){
+        const action=request.postDataJSON().action;
+        assert(['status','builds'].includes(action),'Launcher must never call Dev admin actions');
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(action==='status'?{ok:true,allowed:true,owner:true,channel:'dev'}:{ok:true,builds:[]})});
+      }
       if(clipboardAccount&&mockAvatar&&url.startsWith(onlineBase+'/storage/v1/object/public/avatars/'+mockUser.id+'/avatar.webp'))return route.fulfill({status:200,contentType:'image/webp',body:mockAvatar});
       // Explicit synthetic responses only. No route.continue(), production tokens, or OTP.
       if(clipboardAccount&&url.startsWith(onlineBase+'/')&&request.headers().authorization==='Bearer clipboard-smoke-token'){
@@ -287,6 +292,13 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     await page.getByLabel('Загрузить свою аватарку',{exact:true}).setInputFiles(path.resolve(__dirname,'..','assets','icon.png'));
     await page.waitForFunction(()=>{const input=document.querySelector('[aria-label="Загрузить свою аватарку"]');return input&&!input.disabled;});
     assert.equal(avatarUploads,2);assert.equal(mockUser.has_avatar,true);
+    phase('Dev owner cannot manage invitations from launcher');
+    await nav.getByRole('button',{name:'Dev',exact:true}).click();
+    await page.getByText('Dev-доступ: владелец',{exact:true}).waitFor();
+    await page.getByText('Приглашения и отзыв Dev-доступа — только в TemkaPublisher → Beta Test → Dev · ПК. В лаунчере управления доступом нет.',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Создать Dev-приглашение',exact:true}).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Отозвать доступ тестера',exact:true}).count(),0);
+    assert.equal(await page.getByLabel('Dev-приглашение',{exact:true}).count(),0);
     phase('new library selection filters tabs and honest game statistics');
     await nav.getByRole('button',{name:'Библиотека',exact:true}).click();
     await page.getByRole('button',{name:'Выбрать игру Fantazia RP',exact:true}).click();
