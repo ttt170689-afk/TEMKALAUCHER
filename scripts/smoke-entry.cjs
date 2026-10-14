@@ -22,7 +22,10 @@ let checks=0;const ok=(label,value)=>{assert(value,label);console.log('PASS',++c
     if(options.missing&&!body.create_user)return send({message:'Signups not allowed for otp'},400);
     return send({});
    }
+   if(endpoint==='health')return send({name:'GoTrue'});
    if(endpoint==='verify'){
+    if(options.delayVerify)await new Promise(r=>setTimeout(r,17000));
+    if(options.timeoutVerify)await new Promise(r=>setTimeout(r,1500));
     if(options.slow){state.verifying=true;await new Promise(resolve=>state.release=resolve);}
     if(body.token!=='123456')return send({message:'Token has expired or is invalid'},403);
     return send({access_token:'fixture-entry',refresh_token:'fixture-refresh',expires_in:3600,user:{id:A,email:body.email}});
@@ -40,6 +43,7 @@ let checks=0;const ok=(label,value)=>{assert(value,label);console.log('PASS',++c
    if(['list_my_friends','dm_threads','search_players'].includes(endpoint))return send([]);
    return send({message:'Unhandled fixture RPC: '+endpoint},400);
   });
+  if(options.timeoutVerify)await context.addInitScript(()=>{const timer=window.setTimeout.bind(window);window.setTimeout=(fn,ms,...args)=>timer(fn,ms===45000?200:ms,...args);});
   if(options.seed)await context.addInitScript(seed=>{if(!localStorage.getItem('seed-done')){localStorage.setItem('temka-accounts-v1',JSON.stringify(seed));localStorage.setItem('seed-done','1');}},options.seed);
   if(options.quota)await context.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='temka-accounts-v1')throw new DOMException('Quota','QuotaExceededError');return original.call(this,k,v);};});
   await page.goto(base+'/'+platform+'/');await page.locator('[data-cloud-entry]').waitFor();return state;
@@ -64,8 +68,12 @@ let checks=0;const ok=(label,value)=>{assert(value,label);console.log('PASS',++c
   await n.page.getByPlaceholder('Temka_Игрок').fill('NewHandle');await n.page.getByRole('button',{name:'Сохранить и войти',exact:true}).click();await opened(n);ok('new shared account completes registration',(await data(n)).accounts.users[0].username==='NewHandle');await n.context.close();
   const legacy={id:'old',username:'ServerName',email:'account@example.invalid',passHash:'keep-me',createdAt:'2020-01-01',profile:{avatar:'cat',color:'#ff7a2f',title:'newbie',status:'old'}};
   const l=await fixture({seed:{users:[legacy],session:null}});await send(l,true);await verify(l);await opened(l);saved=await data(l);ok('signup with existing server profile never renames it or merges unverified legacy email',!l.calls.some(c=>c.endpoint==='set_username')&&saved.accounts.users.length===2&&saved.accounts.users[0].passHash==='keep-me');await l.context.close();
-  for(const [options,text,label]of [[{missing:true},'Общий аккаунт','missing shared account suggests explicit signup'],[{network:true},'Нет связи','network failure is not account-not-found'],[{unconfirmed:true},'не подтвердил','unconfirmed email cannot open account'],[{wrongIdentity:true},'не подтвердил','mismatched server identity cannot open account'],[{quota:true},'Не удалось сохранить вход','storage failure rolls back token and stays at entry']]){
+  for(const [options,text,label]of [[{missing:true},'Общий аккаунт','missing shared account suggests explicit signup'],[{network:true},'Нет соединения','network failure is not account-not-found'],[{unconfirmed:true},'не подтвердил','unconfirmed email cannot open account'],[{wrongIdentity:true},'не подтвердил','mismatched server identity cannot open account'],[{quota:true},'Не удалось сохранить вход','storage failure rolls back token and stays at entry']]){
    const x=await fixture(options);await send(x);if(!options.missing&&!options.network)await verify(x);await x.page.getByRole('alert').filter({hasText:text}).waitFor();ok(label,(await data(x)).keys.length===0&&(await data(x)).accounts===null);await x.context.close();
+  }
+  if(engine===chromium&&platform==='mobile'){
+   const delayed=await fixture({delayVerify:true});await send(delayed);await verify(delayed);await delayed.page.getByRole('status').filter({hasText:'Проверяем код'}).waitFor();await delayed.page.getByRole('navigation',{name:'Разделы лаунчера'}).waitFor({timeout:25000});ok('real 17-second verification passes beyond old 15-second limit',delayed.calls.filter(c=>c.endpoint==='verify').length===1);await delayed.context.close();
+   const timeout=await fixture({timeoutVerify:true});await send(timeout);await verify(timeout);await timeout.page.getByRole('alert').filter({hasText:'AUTH-VERIFY · TIMEOUT'}).waitFor();ok('timeout identifies verification stage without replay',timeout.calls.filter(c=>c.endpoint==='verify').length===1);await timeout.page.getByRole('button',{name:'Проверить соединение',exact:true}).click();await timeout.page.getByRole('status').filter({hasText:'Сервис входа доступен'}).waitFor();ok('diagnostic health check sends no extra OTP',timeout.calls.filter(c=>c.endpoint==='otp').length===1&&timeout.calls.some(c=>c.endpoint==='health'));await timeout.page.waitForTimeout(1600);await timeout.context.close();
   }
   const retry=await fixture({failProfile:true});await send(retry);await verify(retry);await retry.page.getByRole('alert').filter({hasText:'temporary profile failure'}).waitFor();retry.failProfile=false;await verify(retry);await opened(retry);ok('profile-service failure can retry without reusing consumed OTP',retry.calls.filter(c=>c.endpoint==='verify').length===1);await retry.context.close();
   const slow=await fixture({slow:true});await send(slow);await verify(slow);await slow.page.waitForTimeout(100);assert(slow.verifying);await slow.page.getByRole('button',{name:'Локальный режим',exact:true}).click();slow.release();await slow.page.waitForTimeout(150);ok('cancellation ignores late verify response and preserves explicit local mode',(await data(slow)).keys.length===0&&(await data(slow)).accounts===null&&await slow.page.getByText('Локальный режим · только это устройство.',{exact:false}).isVisible());await slow.context.close();

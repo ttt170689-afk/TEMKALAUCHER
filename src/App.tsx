@@ -30,6 +30,8 @@ import Sidebar from "./components/Sidebar";
 import type { View } from "./components/Sidebar";
 import HomeView from "./components/HomeView";
 import NewsView from "./components/NewsView";
+import DevView from "./components/DevView";
+import ShopView from "./components/ShopView";
 import LibraryView from "./components/LibraryView";
 import SettingsView from "./components/SettingsView";
 import { ScrambleText, IconSearch } from "./components/ui";
@@ -39,6 +41,8 @@ const VIEW_TITLES: Record<View, { title: string; sub: string }> = {
   home: { title: "Главная", sub: "обзор миров Temka" },
   news: { title: "Новости", sub: "что добавлено, исправлено и убрано" },
   library: { title: "Библиотека", sub: "игры и дополнения" },
+  shop: { title: "Магазин", sub: "кристаллы для Fantazia RP" },
+  dev: { title: "Dev — тестовые версии", sub: "закрытый доступ через основной аккаунт" },
   friends: { title: "Друзья", sub: "люди, приглашения и твой юзернейм" },
   profile: { title: "Профиль", sub: "аккаунт и кастомизация" },
   settings: { title: "Настройки", sub: "конфигурация лаунчера" },
@@ -252,6 +256,8 @@ function Shell() {
                 {view === "library" && (
                   <LibraryView onProfile={()=>setView("profile")} selectedId={selectedId} setSelectedId={setSelectedId} query={query} />
                 )}
+                {view === "shop" && <ShopView />}
+                {view === "dev" && <DevView onProfile={()=>setView("profile")} />}
                 {view === "friends" && <FriendsView onProfile={()=>setView("profile")}/>}
                 {view === "profile" && <ProfileView onFriends={()=>setView("friends")} />}
                 {view === "settings" && <SettingsView />}

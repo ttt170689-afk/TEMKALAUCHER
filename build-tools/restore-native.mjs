@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
 export const TARGETS = [
+ 'src/lib/onlineTransport.ts','tests/connection.test.cjs',
  'src/components/AuthView.tsx','src/components/LocalAuthView.tsx','src/lib/auth.tsx','src/lib/entryAccount.ts','src/lib/entryOtp.ts','tests/entry-account.test.cjs',
  'electron/main.cjs','electron/preload.cjs','electron/update-controller.cjs',
  'electron/release-source.cjs','electron/folder-picker.cjs',
@@ -51,7 +52,7 @@ export function restoreNative(projectRoot,{verify=true}={}){
  console.log(`[Temka runtime] protocol 3, direct release feed; restored ${changed}/${TARGETS.length} files from source ZIP.`);
  if(verify){
   execFileSync(process.execPath,[path.join(root,'node_modules/typescript/bin/tsc'),'--noEmit'],{cwd:root,stdio:'inherit'});
-  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs'],{cwd:root,stdio:'inherit'});
+  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs','tests/connection.test.cjs'],{cwd:root,stdio:'inherit'});
   console.log('[Temka runtime] post-restore TypeScript and runtime regression tests passed.');
  }
  return {changed};

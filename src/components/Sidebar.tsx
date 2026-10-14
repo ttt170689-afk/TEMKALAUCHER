@@ -4,14 +4,16 @@ import { motion } from "framer-motion";
 import OnlineIdentity from "./OnlineIdentity";
 import { useAuth } from "../lib/auth";
 import { AvatarSvg } from "./AvatarSvg";
-import { IconHome, IconLibrary, IconSettings, IconFriends, IconNews, IconUser } from "./ui";
+import { IconHome, IconLibrary, IconSettings, IconFriends, IconNews, IconUser, IconShop, IconDev } from "./ui";
 
-export type View = "home" | "news" | "library" | "friends" | "profile" | "settings";
+export type View = "home" | "news" | "library" | "shop" | "dev" | "friends" | "profile" | "settings";
 
 const NAV: { id: View; label: string; icon: () => React.ReactNode }[] = [
   { id: "home", label: "Главная", icon: IconHome },
   { id: "news", label: "Новости", icon: IconNews },
   { id: "library", label: "Библиотека", icon: IconLibrary },
+  { id: "shop", label: "Магазин", icon: IconShop },
+  { id: "dev", label: "Dev", icon: IconDev },
   { id: "friends", label: "Друзья", icon: IconFriends },
   { id: "profile", label: "Профиль", icon: IconUser },
   { id: "settings", label: "Настройки", icon: IconSettings },

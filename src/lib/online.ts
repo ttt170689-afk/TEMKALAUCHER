@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import {onlineFetch} from './onlineTransport';
 import {readMessages,readThreads,readActivity,readActivitySession,isUUID} from './messaging';
 import type {DirectMessage} from './messaging';
 import {readPlayerCard} from './playerCard';
@@ -66,12 +67,14 @@ export class CloudClient {
   private async requireVerified() {if(!await this.emailVerified())throw Error('Сначала подтверди почту в онлайн-профиле.');}
   private async fetchJson(path: string, init: RequestInit = {}, token?: string) {
     if (!onlineEnabled) throw new Error('Сервер друзей ещё не подключён владельцем лаунчера.');
-    const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const label=path.startsWith('/auth/v1/verify')?'AUTH-VERIFY':path.startsWith('/auth/v1/otp')?'AUTH-SEND':path==='/auth/v1/user'?'ACCOUNT-CHECK':path.endsWith('/my_profile')?'PROFILE-LOAD':path.endsWith('/set_username')?'PROFILE-SAVE':path==='/auth/v1/health'?'CONNECTION-CHECK':'ONLINE';
+    const limit=label==='CONNECTION-CHECK'?10000:(label!=='ONLINE'?45000:15000);
+    const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), limit);
     try {
       const headers = new Headers(init.headers); headers.set('apikey', publicKey);
       if(token) headers.set('Authorization', `Bearer ${token}`);
       if(init.body && typeof init.body === 'string') headers.set('Content-Type', 'application/json');
-      const response = await fetch(base + path, {...init, headers, signal: controller.signal, redirect: 'error'});
+      const response = await onlineFetch(base + path, {...init, headers, signal: controller.signal, redirect: 'error'});
       const text = await response.text();
       let data; try {data = text ? JSON.parse(text) : null;} catch {throw new Error('Сервер вернул некорректный ответ.');}
       if (!response.ok) {
@@ -82,8 +85,12 @@ export class CloudClient {
       }
       return data;
     } catch(error) {
-      if(error instanceof DOMException && error.name === 'AbortError') throw new Error('Сервер не ответил вовремя. Проверь интернет и повтори.');
-      throw error;
+      const message=error instanceof Error?error.message:String((error as {message?:unknown})?.message||error);
+      if((error as {name?:string})?.name==='AbortError'||/timed? ?out|timeout/i.test(message))
+        throw Error(`[${label} · TIMEOUT] ${(error as {name?:string})?.name==='AbortError'?`Сервер не ответил за ${limit/1000} с.`:'Истекло время ожидания соединения или ответа сервера.'} ${label==='AUTH-VERIFY'?'Проверка кода могла завершиться на сервере. Повтори один раз; если код устарел, запроси новый.':'Повтори действие; подтверждённый в этом окне код заново вводить не нужно.'}`);
+      if(/failed to fetch|networkerror|network request failed|load failed|unable to resolve host|connect|ssl|certificate|unknownhost|socket/i.test(message))
+        throw Error(`[${label} · NETWORK] Нет соединения с сервером. Проверь сеть, дату и время телефона.`);
+      throw Error(`[${label}] ${message}`);
     } finally {clearTimeout(timeout);}
   }
   private acceptSession(data: Session & {expires_in?: number}) {
@@ -94,6 +101,10 @@ export class CloudClient {
       if(bound && bound!==data.user.id)throw Error('Это другой аккаунт. Сначала выйди из лаунчера и войди с нужной почтой на первом экране.');
     }
     this.saveSession({...data, expires_at: Number(data.expires_at) || Math.floor(Date.now()/1000) + Number(data.expires_in || 3600)});
+  }
+  async checkConnection() {
+    const data=await this.fetchJson('/auth/v1/health');
+    if(data?.name!=='GoTrue')throw Error('[CONNECTION-CHECK] Неожиданный ответ сервиса входа.');
   }
   async sendCode(email: string, createUser = true) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new Error('Введи корректную почту.');
@@ -124,6 +135,16 @@ export class CloudClient {
     if(this.session?.user.id!==me)throw Error('Онлайн-аккаунт изменился.');
     const result=await this.fetchJson(path,init,token);
     if(this.session?.user.id!==me)throw Error('Онлайн-аккаунт изменился.');
+    return result;
+  }
+  // Main-account session only. No Dev Auth registration or token persistence.
+  async withDevSession<T>(job:(token:string)=>Promise<T>):Promise<T> {
+    const uid=this.session?.user.id;
+    if(!uid)throw Error('Войди в основной онлайн-аккаунт. Локальный режим не даёт Dev-доступ.');
+    const token=await this.token(),generation=this.sessionGeneration;
+    if(this.session?.user.id!==uid)throw Error('Онлайн-аккаунт изменился.');
+    const result=await job(token);
+    if(this.session?.user.id!==uid||generation!==this.sessionGeneration)throw Error('Онлайн-сессия изменилась. Повтори действие.');
     return result;
   }
   async betaStatus(game:string) {if(!isGame(game))throw Error('Неизвестная игра.');return readBetaStatus(await this.request('/rest/v1/rpc/beta_status',{method:'POST',body:JSON.stringify({p_game:game})}),game);}

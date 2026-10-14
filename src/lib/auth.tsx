@@ -70,7 +70,7 @@ interface Ctx {
   user: Account | null;
   register: (username: string, email: string, pass: string) => Promise<string | null>;
   login: (ident: string, pass: string) => Promise<string | null>;
-  enterOnline: (client: CloudClient) => Promise<void>;
+  enterOnline: (client: CloudClient, stage?: (text:string)=>void) => Promise<boolean>;
   logout: () => string | null;
   updateProfile: (patch: Partial<Profile>) => string | null;
   rename: (username: string) => string | null;
@@ -128,13 +128,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [store, persist]
   );
 
-  const enterOnline = useCallback(async (client: CloudClient) => {
+  const enterOnline = useCallback(async (client: CloudClient, stage?: (text:string)=>void) => {
+    stage?.('Код принят. Проверяем аккаунт…');
     const identity=await client.confirmedIdentity();
+    stage?.('Аккаунт подтверждён. Загружаем профиль…');
     const profile=await client.ownProfile();
-    if(!profile || !client.session || client.session.user.id!==identity.id)throw Error('Сначала выбери юзернейм или повтори вход.');
+    if(!client.session || client.session.user.id!==identity.id)throw Error('Сначала выбери юзернейм или повтори вход.');
+    if(!profile)return false;
+    stage?.('Сохраняем вход на устройстве…');
     const next=commitEntry(localStorage,onlineSessionKey,identity,profile,client.session);
     const target=getCloudClient(next.session!);target.reloadSession();notifyOnline(next.session!);
-    client.clearTransient();setStore(next);
+    client.clearTransient();setStore(next);return true;
   },[]);
 
   const endSession = useCallback((remove=false):string|null => {
