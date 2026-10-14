@@ -15,7 +15,7 @@ export const TARGETS = [
  'src/lib/updater.ts','src/lib/version.ts','src/components/UpdateBanner.tsx',
  'tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs',
  'tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','README.md',
- 'scripts/smoke-electron.cjs','tests/ci-smoke.test.cjs',
+ 'scripts/smoke-electron.cjs','scripts/smoke-network.cjs','tests/smoke-network.test.cjs','tests/ci-smoke.test.cjs',
  'electron/clipboard.cjs','src/lib/clipboard.ts','tests/clipboard.test.cjs',
  'src/lib/playerCard.ts','tests/player-card.test.cjs','CHANGELOG.md','TEST-REPORT.md',
  'src/components/GameProperties.tsx','src/lib/online.ts','electron/tracked-game.cjs','tests/messaging.test.cjs','src/lib/activityTracker.ts','src/lib/trackedGame.ts','src/lib/messaging.ts'
@@ -52,7 +52,7 @@ export function restoreNative(projectRoot,{verify=true}={}){
  console.log(`[Temka runtime] protocol 3, direct release feed; restored ${changed}/${TARGETS.length} files from source ZIP.`);
  if(verify){
   execFileSync(process.execPath,[path.join(root,'node_modules/typescript/bin/tsc'),'--noEmit'],{cwd:root,stdio:'inherit'});
-  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs','tests/connection.test.cjs'],{cwd:root,stdio:'inherit'});
+  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs','tests/connection.test.cjs','tests/smoke-network.test.cjs'],{cwd:root,stdio:'inherit'});
   console.log('[Temka runtime] post-restore TypeScript and runtime regression tests passed.');
  }
  return {changed};

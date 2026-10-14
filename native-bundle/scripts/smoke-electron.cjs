@@ -3,20 +3,26 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { installSmokeNetwork } = require('./smoke-network.cjs');
 
 (async () => {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'temka-smoke-'));
   const diagnostics = path.resolve(__dirname, '..', 'test-results', 'electron-smoke');
-  const args = [path.resolve(__dirname, '..'), '--disable-gpu', `--user-data-dir=${profile}`];
+  // Fail closed even during startup, before Playwright can install the session
+  // fixture. These Chromium network switches are test-only, not app settings.
+  const args = [path.resolve(__dirname, '..'), '--disable-gpu',
+    '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
+    `--user-data-dir=${profile}`];
   if (process.platform === 'linux') args.push('--no-sandbox'); // Linux CI only, never production.
-  let app, page;
+  let app, page, network;
   let step = 'launch';
   const errors = [];
+  const externalRequests=[];
+  const mockedEndpoints=new Set();
   const phase = name => { step = name; console.log('SMOKE:', name); };
   try {
     app = await electron.launch({ args, timeout: 60000 });
     // Native smoke must not send real mail or depend on an external service.
-    const externalRequests=[];
     let clipboardAccount=false;
     const mockUser={id:'11111111-1111-4111-8111-111111111111',username:'copy_Тест',has_avatar:false,avatar_version:0,is_creator:false};
     const onlineBase=(process.env.VITE_TEMKA_SUPABASE_URL||require('../src/config/online.public.json').url).trim().replace(/\/+$/,'');
@@ -25,9 +31,9 @@ const path = require('node:path');
     const cardMeta={display_name:'Тестовый игрок',bio:'',avatar_style:'cube',avatar_color:'#63e6be'};
     const playerCard=id=>id===mockUser.id?{...mockUser,...cardMeta,games:[]}:
       id===mockOther.id?{...mockOther,display_name:'Друг из теста',bio:'Тестовый профиль, не реальный игрок.',avatar_style:'mage',avatar_color:'#63e6be',games:[{game_id:'fantazia',level:4,play_seconds:7260,last_played_at:'2026-10-13T00:00:00Z',updated_at:'2026-10-13T00:00:00Z',achievements:[{id:'first',title:'Первый шаг',earned_at:'2026-10-13T00:00:00Z'}],achievements_total:3}]}:null;
-    const mockedEndpoints=new Set();const directMessages=[],messageNonces=new Map();let loseMessageAck=false;
+    const directMessages=[],messageNonces=new Map();let loseMessageAck=false;
     const dmPeer=()=>({peer_id:mockOther.id,username:mockOther.username,has_avatar:false,avatar_version:0,is_creator:false,can_send:true,last_message:directMessages.at(-1)?.body||null,last_at:directMessages.at(-1)?.created_at||null,unread:0});
-    await app.context().route(/^https?:/,route=>{
+    network = await installSmokeNetwork(app, route=>{
       const request=route.request(),url=request.url();externalRequests.push(url);
       if(clipboardAccount&&mockAvatar&&url.startsWith(onlineBase+'/storage/v1/object/public/avatars/'+mockUser.id+'/avatar.webp'))return route.fulfill({status:200,contentType:'image/webp',body:mockAvatar});
       // Explicit synthetic responses only. No route.continue(), production tokens, or OTP.
@@ -182,6 +188,28 @@ const path = require('node:path');
       }finally{foreign.destroy();}
     },path.resolve(__dirname,'..','electron','preload.cjs')),true);
     assert.equal(await app.evaluate(({clipboard})=>clipboard.readText()),beforeInvalid);
+    phase('session network isolation survives foreign window destruction and reload');
+    // Reproduce the lifecycle that preceded the real Linux CI Auth escape. No
+    // Playwright routes or renderer fetch replacements may be needed to pass.
+    const probe = async () => {
+      const reply = await page.evaluate(async () => {
+        const responses = [];
+        for (const scheme of ['https','http']) {
+          const response = await fetch(scheme+'://unhandled-smoke.invalid/probe');
+          responses.push({status:response.status, body:await response.json()});
+        }
+        return responses;
+
+      });
+      for (const response of reply) {
+        assert.equal(response.status,503);
+        assert.equal(response.body.message,'External services blocked in native smoke test');
+      }
+      network.assertHealthy();
+    };
+    await probe();
+    await page.reload();
+    await probe();
     clipboardAccount=true;
     await page.evaluate(({base,id})=>{
       const local=JSON.parse(localStorage.getItem('temka-accounts-v1'));
@@ -191,6 +219,13 @@ const path = require('node:path');
     await nav.getByRole('button',{name:'Профиль',exact:true}).click();
     const profileCopy=page.getByRole('button',{name:'Скопировать @юзернейм',exact:true});
     await profileCopy.waitFor();
+    assert(mockedEndpoints.has('/auth/v1/user'),'Session fixture must answer Auth after reload');
+    const authRequestsBefore=externalRequests.filter(url=>url===onlineBase+'/auth/v1/user').length;
+    await page.reload();
+    await nav.getByRole('button',{name:'Профиль',exact:true}).click();
+    await profileCopy.waitFor();
+    assert(externalRequests.filter(url=>url===onlineBase+'/auth/v1/user').length>authRequestsBefore,'Reloaded online session must still reach the Auth fixture');
+    network.assertHealthy();
     await app.evaluate(({clipboard})=>clipboard.writeText('before-profile-copy'));
     await profileCopy.click();
     await page.getByText('Юзернейм скопирован.',{exact:true}).waitFor();
@@ -325,12 +360,13 @@ const path = require('node:path');
     await page.reload();
     await page.getByRole('button', { name: 'Настройки', exact: true }).waitFor();
     assert.deepEqual(errors, []);
+    network.assertHealthy();
     assert.equal(externalRequests.filter(url=>/\/auth\/v1\/(otp|verify)/.test(url)).length,0,'Native smoke must not trigger automatic OTP');
-    console.log('PASS: compact + wide eight-section navigation including Shop/Dev local safety, 25-character registration/rename, required avatar persistence, settings, friends/bell/beta gates, actual OS clipboard + denial/error paths, public profiles/search/stats, unified avatar, library filters/tabs, IPC, session persistence; mocked online identity, no real OTP.');
+    console.log('PASS: compact + wide eight-section navigation including Shop/Dev local safety, 25-character registration/rename, required avatar persistence, settings, friends/bell/beta gates, actual OS clipboard + denial/error paths, public profiles/search/stats, unified avatar, library filters/tabs, IPC, session persistence, HTTP(S) session isolation across foreign window destruction and repeated reloads; mocked online identity, no real OTP.');
     await app.context().tracing.stop();
   } catch (error) {
     fs.mkdirSync(diagnostics, { recursive: true });
-    const details = { step, error: String(error.stack || error), rendererErrors: errors };
+    const details = { step, error: String(error.stack || error), rendererErrors: errors, fixtureErrors: network?.errors || [], fixtureRequests: externalRequests, mockedEndpoints:[...mockedEndpoints] };
     if (page && !page.isClosed()) {
       details.page = await page.evaluate(() => ({
         url: location.href, width: innerWidth, height: innerHeight,
@@ -348,6 +384,7 @@ const path = require('node:path');
     throw error;
   } finally {
     if (app) await app.close().catch(e => console.error('Electron cleanup:', String(e)));
+    if (network) await network.close();
     try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 }); }
     catch (error) { console.warn('Temporary profile cleanup:', String(error)); }
   }

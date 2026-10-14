@@ -19,7 +19,21 @@ test('native smoke requires all eight destinations, avatar and new friends/beta 
  for(const label of ['Главная','Новости','Библиотека','Магазин','Dev','Друзья','Профиль','Настройки'])assert(smoke.includes(`'${label}'`));
  for(const required of ["phase('custom avatar upload and persistence')",".setInputFiles(","[data-friends-page]","name:'Уведомления'","name:'Бета-тест'","window.require","__trayEventSeen","phase('system clipboard IPC","clipboard.readText()","Скопировать свой юзернейм","copy failure does not claim success","partial friend search and public player cards","one avatar picker and editable public identity","new library selection filters tabs and honest game statistics"])assert(smoke.includes(required),required);
  assert(!smoke.includes("if (await page.getByLabel('Загрузить свою аватарку'"));
- assert(smoke.includes("route(/^https?:/"));assert(smoke.includes('no real OTP'));
+ assert(smoke.includes("installSmokeNetwork(app,"));assert(smoke.includes('no real OTP'));
+});
+test('native smoke isolates networking below renderer and auxiliary-window lifetimes',()=>{
+ const smoke=protectedSmoke(),helper=fs.readFileSync(path.join(root,'native-bundle/scripts/smoke-network.cjs'),'utf8');
+ assert(!smoke.includes('app.context().route('));
+ assert(smoke.includes('--host-resolver-rules=MAP * ~NOTFOUND'));assert(smoke.includes('--no-proxy-server'));
+ assert(smoke.includes("phase('session network isolation survives foreign window destruction and reload')"));
+ assert(smoke.includes('await probe();\n    await page.reload();\n    await probe();'));
+ assert(smoke.includes("mockedEndpoints.has('/auth/v1/user')"));
+ assert(smoke.includes('network.assertHealthy()'));assert(smoke.includes('await network.close()'));
+ assert(helper.includes("protocol.handle('https', handler)"));assert(helper.includes("protocol.handle('http', handler)"));
+ assert(helper.includes("server.listen(0, '127.0.0.1'"));
+ assert(helper.includes('globalThis.fetch(bridge + encodeURIComponent(request.url)'));
+ assert(helper.includes("redirect: 'error'"));assert(!helper.includes('fetch(request.url'));
+ assert(helper.includes('Smoke fixture must not fall through to the internet'));
 });
 test('protected smoke navigation list exactly matches the real sidebar, including Shop and Dev',()=>{
  const smoke=protectedSmoke(),sidebar=fs.readFileSync(path.join(root,'src/components/Sidebar.tsx'),'utf8');
@@ -48,7 +62,7 @@ for(const checkout of ['LF','CRLF','mixed']){
   try{
    fs.cpSync(path.join(root,'native-bundle'),path.join(temp,'native-bundle'),{recursive:true});
    const {restoreNative,TARGETS}=await restore();
-   assert(TARGETS.includes('scripts/smoke-electron.cjs'));assert(TARGETS.includes('tests/ci-smoke.test.cjs'));
+   assert(TARGETS.includes('scripts/smoke-electron.cjs'));assert(TARGETS.includes('scripts/smoke-network.cjs'));assert(TARGETS.includes('tests/ci-smoke.test.cjs'));
    for(const relative of TARGETS){
     const file=path.join(temp,'native-bundle',relative);
     const canonical=fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n');let line=0;
