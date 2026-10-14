@@ -1,36 +1,35 @@
-# ПК 1.9.5 — изоляция сети native smoke
+# ПК 1.9.6 — Windows checkout / CRLF
 
-## Что показал реальный GitHub CI
+## Реальный запуск 1.9.5
 
-Запуск 38546903984 (#20), commit 37822f09d9ee9662f19a48784acdf0e56ad4b5c6, тег v1.9.4: Windows job прошёл; Linux остановился на ожидании «Скопировать @юзернейм», публикация пропущена.
+GitHub run 38576529615 (#21), commit bf737b072697c7c1f03a1bde1374b16849949f6b:
+- Linux job: success.
+- Windows build: failure на npm run build / post-restore tests.
+- Publish: skipped.
 
-В скачанном Linux-артефакте: rendererErrors пуст; профиль показывает `[ACCOUNT-CHECK] invalid JWT ... invalid number of segments`. Trace содержит два GET к основному `/auth/v1/user` с ответом 403. Фиктивный тестовый токен обошёл Playwright mock и попал в настоящий Auth. Это сбой изоляции smoke, не доказательство неисправности реального аккаунта пользователя. Точный внутренний механизм утраты CDP/context interception не установлен; новый тест больше от него не зависит.
+Linux-исправление сетевой изоляции 1.9.5 прошло удалённый CI. Новое Windows-зависимое падение воспроизведено локально: multiline assertion в tests/ci-smoke.test.cjs искал `await probe();\n ...` в protected smoke, который при CRLF checkout содержит `\r\n`. Это ошибка добавленного теста, не ошибка Vite или рабочего входа.
 
 ## Исправление
 
-- В test-only helper `scripts/smoke-network.cjs` HTTP и HTTPS перехватываются `session.defaultSession.protocol` в главном процессе Electron.
-- Ответы формируются исключительно локальным fixture-сервером, привязанным к 127.0.0.1 и случайному порту. Исходный удалённый URL никогда не передаётся в fetch как адрес назначения; passthrough/redirect отсутствуют.
-- URL, Authorization, JSON и бинарные данные сохраняются без сетевого редиректа. Неизвестные сервисы получают синтетический 503. Ошибка/отсутствие ответа fixture даёт 500 и обязательное падение проверки transport errors.
-- Test-only Chromium DNS/proxy-fence действует уже при запуске, до установки session fixture. Настройки рабочего Electron не изменены.
-- Native regression проверяет обе схемы после уничтожения чужого BrowserWindow, перезагрузку, восстановление тестового онлайн-профиля и ещё одну авторизованную перезагрузку с новым обращением к fixture Auth.
-- Сохранились реальные проверки системного буфера обмена, запрета browser clipboard, отказа чужому renderer, обработки ошибки ОС и остальных UI/IPC сценариев. Никакого увеличения таймаутов или ослабления авторизации приложения.
-- Helper и его тесты добавлены в protected native-bundle/manifest и restoreNative allowlist. В установленный лаунчер helper не входит: electron-builder включает dist/electron/icon/package, не scripts/tests.
+Protected source читается с канонизацией CRLF → LF. Multiline-проверка сохранена, никаких continue-on-error, удаления теста или отключения платформы.
 
-## Выполнено локально 14.10.2026
+Предыдущая checkout regression запускала лишь три теста восстановления, поэтому не замечала новый сетевой тест. Теперь для LF, CRLF и mixed запускаются все девять нерекурсивных CI-smoke проверок, включая сетевую. Исключён лишь сам subprocess-spawning тест: отдельный child marker предотвращает рекурсию, а в обычной suite он выполняется. Подлинность protected bundle, checksum, восстановление, sidebar/UI/workflow contracts сохраняются.
 
-- Node 22.23.3; Electron 44.7.0; Linux с Xvfb.
-- Полная suite: **187/187**, без пропусков.
-- TypeScript + production Vite build: **PASS**.
-- Настоящий Electron smoke с DNS/proxy-fence: **19 фаз PASS**, в том числе проблемные онлайн-профиль/копирование и повторные reload.
-- Реальная логика Publisher 1.1.1 `ProjectFiles.ExtractProject` + `ApplySupport` с его встроенным support.zip выполнена через C# import harness. Это не имитация ручного копирования исходников.
-- В импортированном проекте: prebuild suite **36/36**; Vite восстановил **19/42** protected файлов; обязательные post-restore проверки **117/117** и TypeScript прошли.
-- Импортированный и восстановленный проект собран, затем настоящий Linux Electron smoke снова прошёл **19 фаз**. Проверено байтовое совпадение изменённого тестового кода и рабочего runtime с успешно проверенным импортом.
-- Проверки LF/CRLF/mixed и повреждённого manifest включены в прошедшие suite. Обязательные Windows/Linux gates и зависимость публикации от обоих jobs не изменены.
+Рабочий runtime, Electron session fixture, Auth/backend/Dev/updater не изменены. Номер 1.9.6 нужен, поскольку теги 1.9.4 и 1.9.5 уже созданы.
+
+## Выполненная локальная проверка
+
+- Ошибка старой проверки на CRLF воспроизведена до исправления: ERR_ASSERTION на multiline includes.
+- CI-smoke suite: 10/10; дочерние LF/CRLF/mixed проверки запускают по 9 нерекурсивных тестов.
+- Полная suite: 187/187, без пропусков.
+- TypeScript + production Vite build: PASS.
+- Реальные ProjectFiles.ExtractProject + ApplySupport из Publisher 1.1.1, с его встроенным support.zip, выполнены через C# harness.
+- После импорта 176 текстовых файлов checkout преобразованы в CRLF. Это воспроизводит переносы Windows Git checkout, а не только отдельный искусственный snippet.
+- На этом CRLF checkout: prebuild suite 36/36; Vite restore + TypeScript + обязательная post-restore suite 117/117; production build PASS.
+- Собранный CRLF-проект запущен в настоящем Linux Electron 44.7.0 под Xvfb: все 19 фаз smoke PASS, включая онлайн-профиль, системное копирование, чужой renderer, repeated reload, аватарки/DM/IPC.
 
 ## Границы проверки
 
-Новый GitHub Actions запуск 1.9.5 и новая Windows job здесь НЕ запускались. Зелёный Windows относится к предыдущему запуску 1.9.4; локальный Linux smoke не выдаётся за результат нового удалённого CI. После импорта ZIP Publisher должен запустить обе платформы заново.
+CRLF checkout проверялся на Linux с Node 22, это НЕ нативный Windows запуск. Новый GitHub CI 1.9.6 здесь не запускался; Windows и Linux jobs должны снова пройти через Publisher. Зелёный удалённый Linux относится к 1.9.5.
 
-Большой Windows-инсталлятор лаунчера не создавался и не скачивался. Получен только Linux-диагностический артефакт. Реальные OTP/личные токены не использовались; записи в Auth/SQL/GitHub не выполнялись. Рабочий UI, основная авторизация, Dev backend и updater не менялись.
-
-Номер 1.9.5 выбран потому, что тег 1.9.4 уже существует; v1.9.5 отсутствовал при read-only проверке. Опубликованные теги не перезаписываются.
+Большой Windows-инсталлятор лаунчера не создавался/не скачивался. Реальные OTP и личные токены не использовались; Auth/SQL/GitHub записи не выполнялись. Публикация по-прежнему требует успешных обеих платформ. При read-only проверке тег v1.9.6 отсутствовал; существующие теги не перезаписываются.

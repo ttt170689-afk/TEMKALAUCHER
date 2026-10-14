@@ -5,7 +5,10 @@ const {pathToFileURL}=require('node:url');
 const root=path.resolve(__dirname,'..');
 // Publisher intentionally overwrites the working script before npm test/build.
 // Test the protected copy BEFORE restoration, not the disposable old working copy.
-const protectedSmoke=()=>fs.readFileSync(path.join(root,'native-bundle/scripts/smoke-electron.cjs'),'utf8');
+// Canonicalize all source inspections, not only restoration comparisons.
+// Windows Git checkouts may use CRLF while restored files use LF.
+const sourceText=relative=>fs.readFileSync(path.join(root,relative),'utf8').replace(/\r\n/g,'\n');
+const protectedSmoke=()=>sourceText('native-bundle/scripts/smoke-electron.cjs');
 const restore=()=>import(pathToFileURL(path.join(root,'build-tools/restore-native.mjs')).href);
 test('protected native smoke matches accessible local-name field and save button',()=>{
  const smoke=protectedSmoke(),ui=fs.readFileSync(path.join(root,'src/components/ProfileView.tsx'),'utf8');
@@ -97,23 +100,30 @@ test('corrupt protected smoke stops restoration before touching any output',asyn
 
 // Also change the test's OWN project checkout, not just its restoration fixture.
 // This catches comparing restored LF against protectedSmoke()'s raw CRLF bytes.
-test('checkout-level smoke regression passes with CRLF and mixed source files',()=>{
+test('checkout-level smoke regression passes with CRLF and mixed source files',{skip:process.env.TEMKA_CI_CHECKOUT_CHILD==='1'},()=>{
  const {execFileSync}=require('node:child_process');
- for(const checkout of ['CRLF','mixed']){
+ for(const checkout of ['LF','CRLF','mixed']){
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'temka-ci-checkout-'));
   try{
    fs.cpSync(path.join(root,'native-bundle'),path.join(temp,'native-bundle'),{recursive:true});
    fs.mkdirSync(path.join(temp,'tests'));fs.copyFileSync(__filename,path.join(temp,'tests/ci-smoke.test.cjs'));
+   // Include the real UI/workflow contracts so every non-recursive CI smoke
+   // regression runs under this checkout's line endings, not only restoration.
+   for(const relative of ['src/components/ProfileView.tsx','src/components/Sidebar.tsx','.github/workflows/windows.yml','package.json']){
+    const destination=path.join(temp,relative);fs.mkdirSync(path.dirname(destination),{recursive:true});
+    fs.copyFileSync(path.join(root,relative),destination);
+   }
    fs.mkdirSync(path.join(temp,'build-tools'));fs.copyFileSync(path.join(root,'build-tools/restore-native.mjs'),path.join(temp,'build-tools/restore-native.mjs'));
    const convert=dir=>{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
     const file=path.join(dir,entry.name);if(entry.isDirectory()){convert(file);continue;}
     const text=fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n');let line=0;
-    fs.writeFileSync(file,text.replace(/\n/g,()=>checkout==='CRLF'||++line%2?'\r\n':'\n'));
+    fs.writeFileSync(file,checkout==='LF'?text:text.replace(/\n/g,()=>checkout==='CRLF'||++line%2?'\r\n':'\n'));
    }};convert(temp);
-   // Filter only the three restoration cases: no recursive child-suite execution.
-   const env={...process.env};delete env.NODE_TEST_CONTEXT;
-   const result=execFileSync(process.execPath,['--test','--test-reporter=tap','--test-name-pattern=^Publisher-overwritten smoke',path.join(temp,'tests/ci-smoke.test.cjs')],{cwd:temp,stdio:'pipe',env,encoding:'utf8'});
-   assert.match(result,/# pass 3(?:\r?\n|$)/);assert.match(result,/# fail 0(?:\r?\n|$)/);
+   // Run all nine non-recursive checks, including the network-isolation test.
+   // Exclude only this subprocess-spawning test to avoid infinite recursion.
+   const env={...process.env,TEMKA_CI_CHECKOUT_CHILD:'1'};delete env.NODE_TEST_CONTEXT;
+   const result=execFileSync(process.execPath,['--test','--test-reporter=tap','--test-name-pattern=^(protected native smoke|native smoke requires|native smoke isolates|protected smoke navigation|both workflow platforms|Publisher-overwritten smoke|corrupt protected smoke)',path.join(temp,'tests/ci-smoke.test.cjs')],{cwd:temp,stdio:'pipe',env,encoding:'utf8'});
+   assert.match(result,/# pass 9(?:\r?\n|$)/);assert.match(result,/# fail 0(?:\r?\n|$)/);
   }finally{fs.rmSync(temp,{recursive:true,force:true});}
  }
 });
