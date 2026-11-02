@@ -1,13 +1,14 @@
-# ПК 1.9.7 — Dev admin UI removal
+# Closed-game release test report ·02.11.2026
 
-- DevView не содержит выдачи/копирования нового приглашения и отзыва tester даже для owner. SDK issueDev/revokeDevTester удалены.
-- Dev-клиент оставляет проверку доступа, redeem, каталог и download с прежним Main Auth.
-- Полная Node suite **189/189**; TypeScript/Vite production build PASS.
-- Настоящий Linux Electron 44.7.0 под Xvfb: **20 фаз smoke PASS**. Новая фаза рендерит Dev с server fixture owner:true/allowed:true и проверяет отсутствие админ-кнопок и поля выдачи. Разрешены лишь status/builds Dev-вызовы из этого сценария. Остальные clipboard/Auth/UI/IPC проверки сохранены.
-- LF/CRLF/mixed CI-regression продолжает выполняться, не выключена. DevView/SDK/dev.test защищены native-bundle, 45 файлов, canonical SHA256 manifest.
-- Проверен анонимный READ-ONLY POST status к текущему Dev-шлюзу без Bearer: HTTP401 sign_in_required. Это отрицательная проверка, НЕ тест чужого настоящего аккаунта или реальной выдачи.
-- Серверный код проверен: primary Auth/user даёт UID/email только после подтверждения, RPC доступен service_role, выдача/отзыв требуют owner. SQL/Gateway/RLS не менялись.
-- Новый удалённый CI 1.9.7/нативный Windows здесь не запускались. Publisher должен снова проверить обе платформы. Windows/Linux исправления 1.9.6 сохранены.
-- Реальные OTP/личные токены/инвайт со скриншота не использовались, production mutations отсутствуют. Большой Windows-инсталлятор лаунчера не создавался/не скачивался.
+PC1.9.10/Mobile0.5.3-code15, Alpha. Requirement changed from public downloads to launcher-only key gating. Game-server login/DRM intentionally not added.
 
-Publisher 1.1.2 проверен отдельно: официальные .NET Framework4.8 references, WinForms UI и server fixtures; Main Auth и Dev owner проверяются отдельно перед действием; существующее запоминание входа сохранено. Реальная Windows/DPAPI/живые owner mutations требуют пользовательской проверки.
+- Current JS suites: PC226PASS (including7native package/auth/ZIP/process tests and5identity-bound gate tests); mobile140PASS. TypeScript/Vite production builds PASS. Existing updater/Dev/friends/OTP/progress/username policies retained.
+- Native Android release + Java tests: BUILD SUCCESSFUL,327tasks. 5BundledGamePolicy +4GameBetaPolicy new Java tests PASS, plus template ExampleUnitTest. No actual device/emulator/OS installer or game execution. Latest assets must match finalAPK and iOS copy; checksums supplied separately.
+- Closed-game UI42PASS across ChromiumAndroid/WebKitAndroid/ChromiumWindows: no key/no native action, one redeem/server approval, fresh empty checkbox, manual settings/installer, installation status queried, explicit launch, revocation prevents next call, MainURLcopy,320/390/landscape layout, parentdialog/reopen, no XP/activity writes or renderer errors. Backend/native/spawn synthetic only.
+- Regression mobile210/social46/chat18/cloud-first entry55/Dev29/nativeHTTPlogin fixture PASS. Social initially used wrong base8090; corrected env. Its old TemkaWorld approved-build assertion found overly generic new text; restored correct world-specific unavailable-build message, rerun46PASS. Native-login initially wrong direct-mode env; rerun with MOBILE_ENTRY_DIRECT=1 PASS. No assertions disabled. Earlier expected public-beta/version snapshots were updated to explicitly test NEW closed requirements.
+- PC native7 tests use self-contained small ZIP and fake spawn, verify denied/no download, hash corruption/no publish, wholepackage resources, no auto launch, explicit cwd/shellfalse, duplicate prevention, revocation, extraDLL/tamper block. Temp-volume free-space requirement injected ONLY fixtures; production requires1GB. This is not a Windows compatibility/security/gameplay audit.
+- Original Windows archive inspected by range: outer3/inner75entries; innerSHA from originalSHA256SUMS, compiled app.asar81KB, client1.0.1, MZ/PE machine0x8664. No complete Windows ZIP/EXE download/execution. Runtime pins outer153178080bytes/SHA111591... and inner153173775/SHA b769cd... before extraction.
+- Source native-bundle whitelist71files, SHA verified, restores new IPC/ZIPmanager after old Publisher template. Native bundle initially restored old public files during tests: discovered/reapplied changes and regenerated manifests BEFORE final runs. No old public bypass in final source.
+- Actual Publisher1.1.2 import/ApplySupport + restore-native/post-import tests and site tests logged separately with final ZIP; Publisher/MAINroles/Dev/DriveACL unchanged. Only authorized production mutation was ONE restore of existing INACTIVE Main project, verified ACTIVE_HEALTHY/Auth200.
+
+No actual owner key issuance/redemption, authenticated production login/mail/friend action, physicalAndroid update/install/launch, fullWindows binary execution, gameFPS/voice/classload, signedIPA/Xcode, GitHub publication/deployment. Test one Windows PC and one Android before class distribution. Runtime rejects unavailable server/approval rather than inventing success. Original gameAPK kept exact. See README and diagnostics/closed-beta/.

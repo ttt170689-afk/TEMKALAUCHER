@@ -23,7 +23,7 @@ test('launcher cannot create or revoke Dev invites, even for owner; admin is in 
 
 test('Dev server contract enforces trusted main identity and owner-only admin actions',()=>{
  const root=path.resolve(__dirname,'..'),sql=fs.readFileSync(path.join(root,'backend/dev/Temka-Dev-Main-Account.sql'),'utf8'),gateway=fs.readFileSync(path.join(root,'backend/dev/DEV-GATEWAY.ts'),'utf8');
- assert(sql.includes("slot='owner' and enabled"));assert(sql.includes("if member.slot<>'owner' then"));
+ assert(sql.includes("slot='owner' and enabled"));assert(sql.includes("slot text not null unique check(slot in ('owner','tester'))"));assert(sql.includes("if member.slot<>'owner' then"));
  assert(sql.includes('from public,anon,authenticated'));assert(sql.includes('to service_role'));
  assert(gateway.includes('email_confirmed_at'));assert(gateway.includes('user.id'));assert(gateway.includes('user.email'));
 });

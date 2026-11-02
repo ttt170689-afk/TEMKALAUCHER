@@ -7,8 +7,12 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
 export const TARGETS = [
+ 'tests/shop-draft.test.cjs','tests/friend-notifications.test.cjs','tests/avatar.test.cjs','tests/no-guide.test.cjs','tests/game-progress.test.cjs','tests/username.test.cjs','tests/news-creator.test.cjs','tests/online-config.test.cjs',
+ 'tests/game-beta-gate.test.cjs','electron/beta-game.cjs','electron/beta-access.cjs','electron/game-zip.cjs','src/lib/gameBetaGate.ts','tests/closed-game.test.cjs','tests/portable-fixture.cjs',
+ 'src/lib/publicBeta.ts','src/lib/publicBetaRuntime.ts','src/components/PublicBetaDownload.tsx','src/components/public-beta.css','tests/public-beta.test.cjs','src/components/LibraryView.tsx','src/data/games.ts',
  'src/lib/onlineTransport.ts','tests/connection.test.cjs',
  'src/components/DevView.tsx','src/lib/dev.ts','tests/dev.test.cjs',
+ 'src/components/DevWorkspace.tsx','src/components/DevWorkspace.css','src/lib/devMode.ts','tests/dev-mode.test.cjs',
  'src/components/AuthView.tsx','src/components/LocalAuthView.tsx','src/lib/auth.tsx','src/lib/entryAccount.ts','src/lib/entryOtp.ts','tests/entry-account.test.cjs',
  'electron/main.cjs','electron/preload.cjs','electron/update-controller.cjs',
  'electron/release-source.cjs','electron/folder-picker.cjs',
@@ -53,7 +57,7 @@ export function restoreNative(projectRoot,{verify=true}={}){
  console.log(`[Temka runtime] protocol 3, direct release feed; restored ${changed}/${TARGETS.length} files from source ZIP.`);
  if(verify){
   execFileSync(process.execPath,[path.join(root,'node_modules/typescript/bin/tsc'),'--noEmit'],{cwd:root,stdio:'inherit'});
-  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs','tests/connection.test.cjs','tests/smoke-network.test.cjs','tests/dev.test.cjs'],{cwd:root,stdio:'inherit'});
+  execFileSync(process.execPath,['--test','tests/release-source.test.cjs','tests/updater.test.cjs','tests/folder-picker.test.cjs','tests/native-bundle.test.cjs','tests/beta-contract.test.cjs','tests/ci-smoke.test.cjs','tests/clipboard.test.cjs','tests/player-card.test.cjs','tests/messaging.test.cjs','tests/entry-account.test.cjs','tests/connection.test.cjs','tests/smoke-network.test.cjs','tests/dev.test.cjs','tests/dev-mode.test.cjs','tests/public-beta.test.cjs','tests/closed-game.test.cjs','tests/game-beta-gate.test.cjs','tests/shop-draft.test.cjs','tests/friend-notifications.test.cjs','tests/avatar.test.cjs','tests/no-guide.test.cjs','tests/game-progress.test.cjs','tests/username.test.cjs','tests/news-creator.test.cjs','tests/online-config.test.cjs'],{cwd:root,stdio:'inherit'});
   console.log('[Temka runtime] post-restore TypeScript and runtime regression tests passed.');
  }
  return {changed};

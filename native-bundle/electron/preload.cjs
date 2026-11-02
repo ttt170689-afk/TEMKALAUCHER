@@ -11,6 +11,12 @@ try {
 
 contextBridge.exposeInMainWorld("temka", {
   version,
+  betaGame: {
+    status:o=>ipcRenderer.invoke('beta-game:status',o),
+    install:o=>ipcRenderer.invoke('beta-game:install',o),
+    launch:o=>ipcRenderer.invoke('beta-game:launch',o),
+    onProgress:cb=>{const fn=(_event,s)=>cb(s);ipcRenderer.on('beta-game:progress',fn);return ()=>ipcRenderer.removeListener('beta-game:progress',fn);}
+  },
   game: {
     open: game => ipcRenderer.invoke('game:open',game),
     current: () => ipcRenderer.invoke('game:current'),
