@@ -14,7 +14,7 @@
 
 Этот полный ZIP → **Publisher1.1.2 → Лаунчер**. Новый Publisher не нужен: native-bundle и build-tools восстанавливают новый bridge/ZIP-manager поверх старого встроенного шаблона. Не импортировать только dist. Не удалять native-bundle/build-tools и не обходить checksum failures. После импорта обязательны restore-native, typecheck/tests/build; Windows EXE выпускается твоим обычным GitHub workflow, не этим Linux sandbox. Published tags не перезаписывать. Source version1.9.10, APP_VERSION следует версии, выбранной Publisher.
 
-Локально Node22.12+, `npm ci`, `npm run build`, затем `npm test`. Vite автоматически вызывает restoreNative из vite.config.js до сборки и запускает post-restore TypeScript/все226тестов. Прямой вызов модуля `node build-tools/restore-native.mjs` не является CLI-командой восстановления. Полный Windows-лаунчер здесь не собирался/не скачивался, как было запрошено. Текущий sourceZIP проверяется настоящим импортом ProjectFiles/ApplySupport1.1.2 и post-restore tests.
+Локально Node22.12+, `npm ci`, `npm run build`, затем `npm test`. Vite автоматически вызывает restoreNative из vite.config.js до сборки и запускает post-restore TypeScript/все227тестов. Прямой вызов модуля `node build-tools/restore-native.mjs` не является CLI-командой восстановления. Полный Windows-лаунчер здесь не собирался/не скачивался, как было запрошено. Текущий sourceZIP проверяется настоящим импортом ProjectFiles/ApplySupport1.1.2 и post-restore tests.
 
 ## Ключи и основной сервер
 
@@ -33,3 +33,7 @@
 Никаких автоматических согласий системного установщика, удаления игр/данных, произвольного исполнения URL/путей, начисления часов/XP за скачивание/инсталляцию/launch Intent. Для native EXE не подключался фиктивный трекер часов. Новый XP не вводился. TemkaWorld остаётся «Скоро», готовность80%/10% не из roadmap. Имя25символов, друзья/сообщения/аватары, общий первый вход и закрытый Dev сохранены.
 
 **До раздачи проверить на одном настоящем Android и WindowsПК**. Автотесты используют synthetic Main RPC/native callbacks и fake process spawn, не доказывают системную установку/игровую работоспособность. SignedIPA/Xcode/iPhone устройства не было. Никаких публикаций GitHub tags/releases, live deployments или больших сборок/загрузок Windows-лаунчера здесь не делалось.
+
+## Исправление Windows CI smoke после запуска24
+
+В старом native smoke осталась кнопка публичной беты. Исправлен тест закрытой схемы; обязательная проверка не отключена. Полный Linux Electron smoke прошёл; точная Windows UI-ветка воспроизведена в Chromium. Физический Windows/EXE не тестировался. Скачай исправленный ZIP заново и повтори публикацию через Publisher; версию он назначает по опубликованным релизам, поэтому1.9.8 в предыдущем запуске сама по себе не была ошибкой. APK0.5.3 и ZIP сайта не менялись.

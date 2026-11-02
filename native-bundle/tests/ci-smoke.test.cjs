@@ -131,3 +131,11 @@ test('checkout-level smoke regression passes with CRLF and mixed source files',{
   }finally{fs.rmSync(temp,{recursive:true,force:true});}
  }
 });
+
+test('native smoke follows CLOSED beta selectors, key approval and revocation without real game download',()=>{
+ const smoke=protectedSmoke(),ui=sourceText('src/components/PublicBetaDownload.tsx');
+ assert(!smoke.includes("name:'Скачать Beta 0.1'"));assert(!smoke.includes("name:'Скачать файл игры'"));
+ for(const text of ['Бета · установить / играть','Fantazia RP3D · Beta0.1','Скачать и установить']){assert(smoke.includes(text),text);assert(ui.includes(text),text);}
+ for(const text of ["/rest/v1/rpc/beta_status","/rest/v1/rpc/beta_redeem","gameBetaState='revoked'","Reopening must reset consent","Revoked access must not request the game ZIP","gameBetaRedeems,1"])assert(smoke.includes(text),text);
+ assert(smoke.includes('clipboard.smoke.token'));assert(!smoke.includes('clipboard-smoke-token'));
+});

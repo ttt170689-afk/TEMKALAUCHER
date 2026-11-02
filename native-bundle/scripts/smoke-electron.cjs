@@ -31,6 +31,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     const onlineBase=(process.env.VITE_TEMKA_SUPABASE_URL||require('../src/config/online.public.json').url).trim().replace(/\/+$/,'');
     const mockOther={...mockUser,id:'22222222-2222-4222-8222-222222222222',username:'copy_friend'};
     let mockAvatar=null,avatarUploads=0,failCard=false,failAvatar=false;
+    let gameBetaState='none',gameBetaRedeems=0;
     const cardMeta={display_name:'Тестовый игрок',bio:'',avatar_style:'cube',avatar_color:'#63e6be'};
     const playerCard=id=>id===mockUser.id?{...mockUser,...cardMeta,games:[]}:
       id===mockOther.id?{...mockOther,display_name:'Друг из теста',bio:'Тестовый профиль, не реальный игрок.',avatar_style:'mage',avatar_color:'#63e6be',games:[{game_id:'fantazia',level:4,play_seconds:7260,last_played_at:'2026-10-13T00:00:00Z',updated_at:'2026-10-13T00:00:00Z',achievements:[{id:'first',title:'Первый шаг',earned_at:'2026-10-13T00:00:00Z'}],achievements_total:3}]}:null;
@@ -38,7 +39,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     const dmPeer=()=>({peer_id:mockOther.id,username:mockOther.username,has_avatar:false,avatar_version:0,is_creator:false,can_send:true,last_message:directMessages.at(-1)?.body||null,last_at:directMessages.at(-1)?.created_at||null,unread:0});
     network = await installSmokeNetwork(app, route=>{
       const request=route.request(),url=request.url();externalRequests.push(url);
-      if(clipboardAccount&&url==='https://zykpirbzgiylkkasrllk.supabase.co/functions/v1/dev-gateway'&&request.headers().authorization==='Bearer clipboard-smoke-token'){
+      if(clipboardAccount&&url==='https://zykpirbzgiylkkasrllk.supabase.co/functions/v1/dev-gateway'&&request.headers().authorization==='Bearer clipboard.smoke.token'){
         const action=request.postDataJSON().action;
         assert(['status','redeem','builds','download'].includes(action),'Launcher must never call Dev admin actions');
         if(action==='status')devStatusCalls++;
@@ -51,9 +52,11 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
       }
       if(clipboardAccount&&mockAvatar&&url.startsWith(onlineBase+'/storage/v1/object/public/avatars/'+mockUser.id+'/avatar.webp'))return route.fulfill({status:200,contentType:'image/webp',body:mockAvatar});
       // Explicit synthetic responses only. No route.continue(), production tokens, or OTP.
-      if(clipboardAccount&&url.startsWith(onlineBase+'/')&&request.headers().authorization==='Bearer clipboard-smoke-token'){
+      if(clipboardAccount&&url.startsWith(onlineBase+'/')&&request.headers().authorization==='Bearer clipboard.smoke.token'){
         const endpoint=url.slice(onlineBase.length);let body={};try{body=request.postDataJSON()||{};}catch{}
         const respond=data=>{mockedEndpoints.add(endpoint);return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});};
+        if(endpoint==='/rest/v1/rpc/beta_status')return respond({game_id:body.p_game,state:body.p_game==='fantazia'?gameBetaState:'none',request_id:body.p_game==='fantazia'&&gameBetaState!=='none'?mockUser.id:null,updated_at:body.p_game==='fantazia'&&gameBetaState!=='none'?'2026-11-02T00:00:00Z':null});
+        if(endpoint==='/rest/v1/rpc/beta_redeem'){assert.equal(body.p_game,'fantazia');assert.equal(body.p_code,'TEMKA-ABCDEF1234567890');gameBetaRedeems++;gameBetaState='approved';return respond({ok:true,status:{game_id:'fantazia',state:gameBetaState,request_id:mockUser.id,updated_at:'2026-11-02T00:00:00Z'}});}
         if(endpoint==='/rest/v1/rpc/get_player_activity')return respond({playing:null,history:[]});
         if(endpoint==='/rest/v1/rpc/dm_threads')return respond([dmPeer()]);
         if(endpoint==='/rest/v1/rpc/dm_messages')return respond(directMessages.slice(-50));
@@ -227,7 +230,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     clipboardAccount=true;
     await page.evaluate(({base,id})=>{
       const local=JSON.parse(localStorage.getItem('temka-accounts-v1'));
-      localStorage.setItem(`temka-online-v1:${base}:${local.session}`,JSON.stringify({access_token:'clipboard-smoke-token',refresh_token:'clipboard-smoke-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id,email:'clipboard@example.invalid'}}));
+      localStorage.setItem(`temka-online-v1:${base}:${local.session}`,JSON.stringify({access_token:'clipboard.smoke.token',refresh_token:'clipboard-smoke-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id,email:'clipboard@example.invalid'}}));
     },{base:onlineBase,id:mockUser.id});
     await page.reload();
     await nav.getByRole('button',{name:'Профиль',exact:true}).click();
@@ -382,14 +385,43 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     await nav.getByRole('button',{name:'Библиотека',exact:true}).click();
     await page.getByRole('button',{name:'Выбрать игру Fantazia RP',exact:true}).click();
     await page.locator('[data-selected-game="fantazia"]').waitFor();
-    phase('public Beta 0.1 has explicit consent; platform is not silently substituted');
+    phase('closed Beta0.1 requires a key, native status and fresh consent; revocation blocks download');
+    // Exercise the production native gate through Electron net.fetch on EVERY CI OS.
+    // Only platform selection is injected: no Windows EXE, real download or live server is used.
+    const nativeBetaStatus=()=>app.evaluate(async({net},data)=>{
+      const {createBetaGame}=process.mainModule.require(data.module);
+      const manager=createBetaGame({platform:'win32',getDataPath:()=>data.profile,getDefaultRoot:()=>data.profile,fetchImpl:(url,options)=>net.fetch(url,options),spawnImpl:()=>{throw Error('Smoke must never spawn the real game');}});
+      try{return {phase:(await manager.status({game:'fantazia',token:'clipboard.smoke.token'})).phase};}catch(error){return {error:error.message};}
+    },{module:path.resolve(__dirname,'../electron/beta-game.cjs'),profile:path.join(profile,'native-beta-probe')});
+    gameBetaState='none';assert((await nativeBetaStatus()).error,'No key must fail inside native code');
+    gameBetaState='approved';assert.equal((await nativeBetaStatus()).phase,'notInstalled','Approved native status uses the intercepted MAIN response');
+    gameBetaState='revoked';assert((await nativeBetaStatus()).error,'Revocation must fail inside native code');gameBetaState='none';
     if(process.platform==='win32'){
-      await page.getByRole('button',{name:'Скачать Beta 0.1',exact:true}).click();
-      const beta=page.getByRole('dialog',{name:'Fantazia RP 3D · Beta 0.1',exact:true});
-      assert.equal(await beta.getByRole('checkbox').isChecked(),false);
-      assert.equal(await beta.getByRole('button',{name:'Скачать файл игры',exact:true}).isDisabled(),true);
-      await beta.getByRole('checkbox').check();assert.equal(await beta.getByRole('button',{name:'Скачать файл игры',exact:true}).isEnabled(),true);
-      await beta.getByRole('button',{name:'Отмена',exact:true}).click();
+      await page.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();
+      const props=page.getByRole('dialog').filter({has:page.locator('#gp-title')});
+      await props.getByRole('tab',{name:'Бета-тест',exact:true}).click();
+      await props.getByLabel('Бета-код',{exact:true}).waitFor();
+      assert.equal(await page.getByRole('dialog',{name:'Fantazia RP3D · Beta0.1',exact:true}).count(),0,'No key must not open an installer');
+      await props.getByLabel('Бета-код',{exact:true}).fill('TEMKA-ABCDEF1234567890');
+      await props.getByRole('button',{name:'Отправить код',exact:true}).click();
+      await props.getByText('Доступ к бета-тесту одобрен',{exact:true}).waitFor();assert.equal(gameBetaRedeems,1);
+      await props.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();
+      const beta=page.getByRole('dialog',{name:'Fantazia RP3D · Beta0.1',exact:true});
+      const primary=beta.getByRole('button',{name:'Скачать и установить',exact:true});
+      await beta.waitFor();assert.equal(await beta.getByRole('checkbox').isChecked(),false);assert.equal(await primary.isDisabled(),true);
+      await beta.getByRole('checkbox').check();
+      // Becoming enabled requires a real IPC/native status result. The MAIN response is synthetic.
+      // Never click an approved install: CI must not download or execute the real Windows game.
+      await page.waitForFunction(()=>!document.querySelector('.public-beta-primary')?.disabled);
+      assert.equal(await primary.isEnabled(),true);
+      gameBetaState='revoked';await primary.click();
+      await beta.getByRole('alert').filter({hasText:'Нужен доступ Fantazia по ключу'}).waitFor();
+      assert.equal(externalRequests.some(url=>url.startsWith('https://drive.usercontent.google.com/')),false,'Revoked access must not request the game ZIP');
+      gameBetaState='approved';await beta.getByRole('button',{name:'Закрыть',exact:true}).click();
+      await props.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();await beta.waitFor();
+      assert.equal(await beta.getByRole('checkbox').isChecked(),false,'Reopening must reset consent');
+      await beta.getByRole('button',{name:'Закрыть',exact:true}).click();
+      await props.getByRole('button',{name:'Закрыть свойства',exact:true}).click();
     }else assert.equal(await page.getByRole('button',{name:'Сборки для этой платформы пока нет',exact:true}).isDisabled(),true);
     await page.getByText('Beta 0.1',{exact:true}).first().waitFor();
     assert.equal(await page.getByRole('button',{name:/Открыть в браузере/}).count(),0);

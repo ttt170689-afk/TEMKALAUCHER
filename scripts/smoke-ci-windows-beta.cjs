@@ -1,0 +1,35 @@
+// Native CI regression branch reproduction. Browser simulation only, NOT Windows device proof.
+// Actual production JS, synthetic MAIN RPC/native bridge. No real keys/mail/install/EXE execution.
+const {chromium,webkit}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const mobile=process.env.MOBILE_URL||'http://127.0.0.1:8095',desktop=process.env.PC_URL||'http://127.0.0.1:8096',main='https://jubsgthkahxxexmibdwn.supabase.co',uid='12345678-1234-1234-1234-123456789abc',jwt='fixture.main.signature';let checks=0;const ok=(label,value)=>{assert(value,label);console.log('PASS',++checks,label);};
+(async()=>{for(const spec of [{engine:chromium,android:false}]){
+ const browser=await spec.engine.launch(),base=spec.android?mobile:desktop,label=spec.android?spec.engine.name()+' Android':'Chromium Windows';const c=await browser.newContext({viewport:spec.android?{width:390,height:844}:{width:1280,height:900},isMobile:spec.android,hasTouch:spec.android});const p=await c.newPage(),errors=[],calls=[];p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));let state='none',redeems=0;const externalRequests=[];
+ await c.route(/^https?:/,async r=>{const req=r.request(),u=req.url();externalRequests.push(u);if(u.startsWith(base))return r.continue();const send=(data,status=200)=>r.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});if(!u.startsWith(main+'/'))return send({error:'unlisted'},503);const endpoint=new URL(u).pathname.split('/').pop();calls.push(endpoint);if(endpoint==='user')return send({id:uid,email_confirmed_at:'2026-11-01T00:00:00Z'});if(endpoint==='my_profile')return send([{id:uid,username:'KeyTester',has_avatar:false,avatar_version:0,is_creator:false}]);if(['list_my_friends','dm_threads'].includes(endpoint))return send([]);if(endpoint==='get_player_activity')return send({playing:null,history:[]});const status=()=>({game_id:'fantazia',state,request_id:state==='none'?null:uid,updated_at:state==='none'?null:'2026-11-02T00:00:00Z'});if(endpoint==='beta_status')return send(status());if(endpoint==='beta_redeem'){assert.equal(req.postDataJSON().p_game,'fantazia');redeems++;state='approved';return send({ok:true,status:status()});}return send({error:'Unexpected '+endpoint},503);});
+ await c.addInitScript(({android,jwt})=>{
+  window.__native=[];window.__installed=false;window.__mode='permissionRequired';window.__callbacks={};window.__copied='';
+  if(!android){window.temka={version:'1.9.10',platform:'win32',copyText:async t=>{window.__copied=t;return {ok:true};},betaGame:{status:async o=>{window.__native.push(['status',o]);return {phase:window.__installed?'installed':'notInstalled',folder:'C:\\Synthetic\\Fantazia-RP-3D'};},install:async o=>{window.__native.push(['install',o]);window.__installed=true;return {phase:'installed'};},launch:async o=>{window.__native.push(['launch',o]);return {phase:'running'};},onProgress:()=>()=>{}}};return;}
+  window.androidBridge={};const headers={BundledGame:['status','install','launch','openSettings'],CapacitorHttp:['request'],Clipboard:['read','write'],StatusBar:['setStyle','setOverlaysWebView'],Keyboard:['addListener','removeListener','hide'],App:['addListener','removeListener','minimizeApp'],TrackedGame:['current','close','addListener','removeListener']};
+  window.Capacitor={PluginHeaders:Object.entries(headers).map(([name,methods])=>({name,methods:methods.map(name=>({name,rtype:name==='addListener'?'callback':'promise'}))})),nativeCallback:(plugin,method,opts,callback)=>{if(plugin==='App'&&method==='addListener')window.__callbacks[opts.eventName]=callback;return 'fixture-listener';},nativePromise:async(plugin,method,o)=>{
+   if(plugin==='CapacitorHttp'){const method=o.method||'GET';const response=await fetch(o.url,{method,headers:o.headers,body:['GET','HEAD'].includes(method)?undefined:typeof o.data==='string'?o.data:JSON.stringify(o.data)});return {data:await response.json(),status:response.status,headers:{'content-type':'application/json'},url:o.url};}
+   if(plugin==='BundledGame'){window.__native.push([method,o]);if(method==='status')return {phase:window.__installed?'installed':'notInstalled'};if(method==='openSettings')return {};if(method==='launch')return {phase:'launchRequested'};return {status:window.__mode};}
+   if(plugin==='Clipboard'){if(method==='write'){window.__copied=o.string;return {};}return {value:window.__copied,type:'text/plain'};}
+   return plugin==='TrackedGame'&&method==='current'?{state:null}:{};
+  }};
+ },{android:spec.android,jwt});
+ try{
+  await p.goto(base);await p.getByRole('button',{name:'Локальный режим',exact:true}).click();await p.getByPlaceholder('Temka_Игрок').fill('KeyTester');await p.getByPlaceholder('you@example.com').fill('keys@example.invalid');for(const input of await p.locator('input[type=password]').all())await input.fill('FixtureOnly123!');await p.getByRole('button',{name:/Принимаю правила/}).click();await p.getByRole('button',{name:'Создать аккаунт',exact:true}).click();
+  const nav=spec.android?p.getByRole('navigation',{name:'Разделы лаунчера'}):p.locator('body');await p.getByRole('button',{name:'Библиотека',exact:true}).first().waitFor();await p.evaluate(({main,uid,jwt})=>{const id=JSON.parse(localStorage.getItem('temka-accounts-v1')).session;localStorage.setItem(`temka-online-v1:${main}:${id}`,JSON.stringify({access_token:jwt,refresh_token:'synthetic-refresh',expires_at:Date.now()/1000+3600,user:{id:uid}}));},{main,uid,jwt});await p.reload();
+  await p.getByRole('button',{name:'Библиотека',exact:true}).first().click();await p.getByRole('button',{name:/^Выбрать игру Fantazia RP/}).click();
+  // Execute the EXACT Windows-only branch from the native CI script, not a separately maintained scenario.
+  const native=fs.readFileSync(path.resolve(__dirname,'smoke-electron.cjs'),'utf8');
+  const anchor=native.indexOf("phase('closed Beta0.1 requires a key");
+  const start=native.indexOf("if(process.platform==='win32'){",anchor)+"if(process.platform==='win32'){".length;
+  const end=native.indexOf("}else assert.equal(await page.getByRole('button',{name:'Сборки для этой платформы пока нет'",start);
+  assert(anchor>=0&&start>anchor&&end>start,'Native Windows beta branch must exist');
+  const code=native.slice(start,end).replace(/\bgameBetaState\b/g,'control.state').replace(/\bgameBetaRedeems\b/g,'control.redeems');
+  const run=new (Object.getPrototypeOf(async function(){}).constructor)('page','assert','externalRequests','control',code);
+  await run(p,assert,externalRequests,{get state(){return state;},set state(v){state=v;},get redeems(){return redeems;}});
+  assert.equal(await p.evaluate(()=>window.__native.filter(x=>['install','launch'].includes(x[0])).length),0,'Denied/revoked smoke must not request game installation/execution');
+  assert.equal(errors.length,0);console.log('PASS: exact Windows native-smoke beta UI branch against production JS; synthetic MAIN/native callbacks, no real download or Windows execution.');
+ }finally{await browser.close();}
+}})().catch(e=>{console.error(e);process.exitCode=1;});
