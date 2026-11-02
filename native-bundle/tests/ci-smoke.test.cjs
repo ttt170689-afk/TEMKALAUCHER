@@ -139,3 +139,14 @@ test('native smoke follows CLOSED beta selectors, key approval and revocation wi
  for(const text of ["/rest/v1/rpc/beta_status","/rest/v1/rpc/beta_redeem","gameBetaState='revoked'","Reopening must reset consent","Revoked access must not request the game ZIP","gameBetaRedeems,1"])assert(smoke.includes(text),text);
  assert(smoke.includes('clipboard.smoke.token'));assert(!smoke.includes('clipboard-smoke-token'));
 });
+
+test('custom cursor never hides the OS pointer underneath a native modal',()=>{
+ const css=sourceText('src/index.css'),cursor=sourceText('src/components/Cursor.tsx');
+ assert(css.includes('body.tl-cursor-none:not(:has(dialog:modal)) *'));
+ assert(!/body\.tl-cursor-none\s*\*\s*\{/.test(css));
+ assert(css.includes('body:has(dialog:modal) [data-tl-cursor]'));
+ for(const part of ['canvas','ring','dot'])assert(cursor.includes(`data-tl-cursor="${part}"`));
+ assert(protectedSmoke().includes('Native beta modal must keep a visible OS pointer'));
+});
+
+test('mandatory native smoke includes real Electron opaque-ASAR and preferred-root fixture',()=>{const smoke=protectedSmoke();assert(smoke.includes("execFileSync(process.execPath,[path.resolve(__dirname,'smoke-game-io.cjs')]"));const io=sourceText('scripts/smoke-game-io.cjs');for(const s of ["req('original-fs')","root:selected","wrongCreated","m.install(o)","m.launch(o)","synthetic"])assert(io.includes(s),s);assert(sourceText('src/lib/settings.tsx').includes('downloadPath: ""'));assert(!sourceText('src/components/SettingsView.tsx').includes('Игры ещё не доступны'));});

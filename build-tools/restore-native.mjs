@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
 export const TARGETS = [
+ 'electron/game-fs.cjs','scripts/smoke-game-io.cjs',
  'tests/shop-draft.test.cjs','tests/friend-notifications.test.cjs','tests/avatar.test.cjs','tests/no-guide.test.cjs','tests/game-progress.test.cjs','tests/username.test.cjs','tests/news-creator.test.cjs','tests/online-config.test.cjs',
  'tests/game-beta-gate.test.cjs','electron/beta-game.cjs','electron/beta-access.cjs','electron/game-zip.cjs','src/lib/gameBetaGate.ts','tests/closed-game.test.cjs','tests/portable-fixture.cjs',
  'src/lib/publicBeta.ts','src/lib/publicBetaRuntime.ts','src/components/PublicBetaDownload.tsx','src/components/public-beta.css','tests/public-beta.test.cjs','src/components/LibraryView.tsx','src/data/games.ts',

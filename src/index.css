@@ -43,9 +43,14 @@ body {
   overflow: hidden;
 }
 
-body.tl-cursor-none,
-body.tl-cursor-none * {
+/* A showModal() dialog lives in the top layer, above the decorative cursor.
+   Keep the OS pointer whenever ANY native modal is open; restore custom mode on close. */
+body.tl-cursor-none:not(:has(dialog:modal)),
+body.tl-cursor-none:not(:has(dialog:modal)) * {
   cursor: none !important;
+}
+body:has(dialog:modal) [data-tl-cursor] {
+  visibility: hidden;
 }
 
 /* защита от копирования в режиме приложения */

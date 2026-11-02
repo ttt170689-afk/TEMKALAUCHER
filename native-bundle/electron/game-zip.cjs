@@ -1,6 +1,6 @@
 'use strict';
 // Bounded ZIP32 extraction. No shell/PowerShell, symlinks, arbitrary paths or ZIP64.
-const fs=require('node:fs'),p=require('node:path'),zlib=require('node:zlib'),crypto=require('node:crypto');
+const fs=require('./game-fs.cjs'),p=require('node:path'),zlib=require('node:zlib'),crypto=require('node:crypto');
 const {Transform}=require('node:stream');const {pipeline}=require('node:stream/promises');
 function safeName(name){
  if(typeof name!=='string'||name.length>220||!name||name.includes('\\')||name.startsWith('/')||name.includes('//')||/[\x00-\x1f<>:"|?*]/.test(name))throw Error('Небезопасное имя файла игры.');

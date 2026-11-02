@@ -16,6 +16,7 @@ const mobile=process.env.MOBILE_URL||'http://127.0.0.1:8095',desktop=process.env
    return plugin==='TrackedGame'&&method==='current'?{state:null}:{};
   }};
  },{android:spec.android,jwt});
+ await c.addInitScript(()=>localStorage.setItem('temka-launcher-settings-v1',JSON.stringify({customCursor:true,particles:false})));
  try{
   await p.goto(base);await p.getByRole('button',{name:'Локальный режим',exact:true}).click();await p.getByPlaceholder('Temka_Игрок').fill('KeyTester');await p.getByPlaceholder('you@example.com').fill('keys@example.invalid');for(const input of await p.locator('input[type=password]').all())await input.fill('FixtureOnly123!');await p.getByRole('button',{name:/Принимаю правила/}).click();await p.getByRole('button',{name:'Создать аккаунт',exact:true}).click();
   const nav=spec.android?p.getByRole('navigation',{name:'Разделы лаунчера'}):p.locator('body');await p.getByRole('button',{name:'Библиотека',exact:true}).first().waitFor();await p.evaluate(({main,uid,jwt})=>{const id=JSON.parse(localStorage.getItem('temka-accounts-v1')).session;localStorage.setItem(`temka-online-v1:${main}:${id}`,JSON.stringify({access_token:jwt,refresh_token:'synthetic-refresh',expires_at:Date.now()/1000+3600,user:{id:uid}}));},{main,uid,jwt});await p.reload();
@@ -30,6 +31,6 @@ const mobile=process.env.MOBILE_URL||'http://127.0.0.1:8095',desktop=process.env
   const run=new (Object.getPrototypeOf(async function(){}).constructor)('page','assert','externalRequests','control',code);
   await run(p,assert,externalRequests,{get state(){return state;},set state(v){state=v;},get redeems(){return redeems;}});
   assert.equal(await p.evaluate(()=>window.__native.filter(x=>['install','launch'].includes(x[0])).length),0,'Denied/revoked smoke must not request game installation/execution');
-  assert.equal(errors.length,0);console.log('PASS: exact Windows native-smoke beta UI branch against production JS; synthetic MAIN/native callbacks, no real download or Windows execution.');
+  assert.equal(await p.evaluate(()=>getComputedStyle(document.body).cursor),'none','Closing modal restores custom cursor mode');assert.equal(await p.locator('[data-tl-cursor]').count(),3);assert(await p.locator('[data-tl-cursor]').evaluateAll(list=>list.every(e=>getComputedStyle(e).visibility==='visible')));assert.equal(errors.length,0);console.log('PASS: exact Windows native-smoke beta UI branch against production JS; synthetic MAIN/native callbacks, no real download or Windows execution.');
  }finally{await browser.close();}
 }})().catch(e=>{console.error(e);process.exitCode=1;});

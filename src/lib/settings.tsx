@@ -51,7 +51,7 @@ export const DEFAULTS: Settings = {
   periodicCheck: true,
   autoInstall: true,
   closeOnLaunch: true,
-  downloadPath: "C:\\Games\\TemkaLauncher",
+  downloadPath: "",
   speedLimit: 0,
 };
 

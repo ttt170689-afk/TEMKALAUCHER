@@ -495,11 +495,12 @@ export default function Cursor() {
 
   return (
     <>
-      <canvas ref={canvasRef} className="cursor-canvas" />
+      <canvas ref={canvasRef} data-tl-cursor="canvas" className="cursor-canvas" />
 
       {/* сборка кольца */}
       <div
         ref={ringRef}
+        data-tl-cursor="ring"
         className="pointer-events-none fixed left-0 top-0 z-[999] will-change-transform"
         style={{ opacity: visible ? 1 : 0, transition: "opacity .3s ease" }}
       >
@@ -669,6 +670,7 @@ export default function Cursor() {
       {/* точка */}
       <div
         ref={dotRef}
+        data-tl-cursor="dot"
         className="pointer-events-none fixed left-0 top-0 z-[999] will-change-transform"
         style={{ opacity: visible ? 1 : 0, transition: "opacity .3s ease" }}
       >

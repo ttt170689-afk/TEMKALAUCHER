@@ -6,6 +6,8 @@ const path = require('node:path');
 const { installSmokeNetwork } = require('./smoke-network.cjs');
 
 (async () => {
+  // Mandatory real-Electron fixture: Node-only ZIP tests cannot detect ASAR virtualization.
+  require('node:child_process').execFileSync(process.execPath,[path.resolve(__dirname,'smoke-game-io.cjs')],{stdio:'inherit',timeout:45000});
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'temka-smoke-'));
   const diagnostics = path.resolve(__dirname, '..', 'test-results', 'electron-smoke');
   // Fail closed even during startup, before Playwright can install the session
@@ -409,6 +411,8 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
       const beta=page.getByRole('dialog',{name:'Fantazia RP3D · Beta0.1',exact:true});
       const primary=beta.getByRole('button',{name:'Скачать и установить',exact:true});
       await beta.waitFor();assert.equal(await beta.getByRole('checkbox').isChecked(),false);assert.equal(await primary.isDisabled(),true);
+      const pointers=await page.evaluate(()=>{const had=document.body.classList.contains('tl-cursor-none');document.body.classList.add('tl-cursor-none');try{const dialog=document.querySelector('dialog:modal');return [dialog,...dialog.querySelectorAll('button,input,label')].map(e=>getComputedStyle(e).cursor);}finally{if(!had)document.body.classList.remove('tl-cursor-none');}});
+      assert(pointers.length>3&&pointers.every(cursor=>cursor!=='none'),'Native beta modal must keep a visible OS pointer even with custom cursor enabled');
       await beta.getByRole('checkbox').check();
       // Becoming enabled requires a real IPC/native status result. The MAIN response is synthetic.
       // Never click an approved install: CI must not download or execute the real Windows game.

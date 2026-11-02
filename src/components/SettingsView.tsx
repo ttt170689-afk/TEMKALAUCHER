@@ -255,11 +255,12 @@ export default function SettingsView() {
         <Section title="Загрузки и обновления" delay={180} icon={<IconDownload />}>
           <div className="px-5 py-4">
             <p className="text-[14px] font-extrabold">Папка для игр</p>
-            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Путь для будущих установок. Игры ещё не доступны; выбор папки ничего не скачивает.</p>
+            <p className="mt-0.5 text-[12px] text-[var(--tx3)]">Эта папка используется для новых установок Fantazia. Выбор папки сам ничего не скачивает и не переносит уже установленные файлы.</p>
             <div className="mt-3 flex gap-2">
               <input
                 className="input-tl font-mono2 min-w-0 flex-1 px-4 py-2.5 text-[12.5px]"
                 aria-label="Папка для игр"
+                placeholder="По умолчанию — путь показан в окне установки"
                 readOnly
                 value={s.downloadPath}
                 onChange={(e) => set("downloadPath", e.target.value)}
