@@ -1,3 +1,13 @@
+## Исправление публикации Windows: ETIMEDOUT / journal.baj
+
+Сборка GitHub #26 (v1.9.10, commit fe0cf6bc73698f305f0e9f1aa4030708f7ee3cdc) остановилась до упаковки на обязательном smoke-game-io: временный Chromium-профиль оставался занят, а дочерний Node не завершился до execFileSync timeout45000. Это ошибка тестового lifecycle, не выбранной E-папки и не ключа. Linux-job тогда прошёл, Windows installer/publish были skipped. Node20 deprecation warning не причина.
+
+Исправление: отдельный маленький Electron-host без production tray/login/updater; явное ожидание завершения своего процесса, Windows taskkill только для его PID с /T /F при зависшем закрытии; асинхронные bounded retries очистки. Неудаляемый временный cache даёт предупреждение, не маскируя ошибку проверки. Одноразовый Node завершается с кодом по результату assertions и teardown; внешний supervisor120s остаётся failsafe, не заменой исправлению. Проверка ASAR/SHA/выбранной E-папки остаётся обязательной; обычный запуск полного лаунчера проверяется следующим native smoke. Отчёт game-io.json сохраняется в smoke diagnostics и при ошибке fixture.
+
+Текущий набор:242tests,76protected files. Настоящий Electron Linux: fixture + полный native smoke PASS. Fault injection занятого journal.baj: EXIT0 без зависания после успешных assertions; занятый cache плюс намеренная ошибка assertion: EXIT1, не ложный успех. Windows kill-tree/exit/retry ветки покрыты unit mocks. Исправленный Windows CI ещё должен пройти на GitHub: не объявлять выпуск опубликованным до success. Исходники папки E/original-fs/курсора включены; APK/сайт/серверы не менялись. Импортировать СВЕЖИЙ ZIP в Publisher1.1.2 и публиковать следующий свободный номер, не перезаписывать существующие теги. Полный Windows installer/game здесь не скачивали/не запускали.
+
+---
+
 # TemkaLauncher PC1.9.10 · Alpha
 
 ## Скачать/распаковать/запустить игру из лаунчера
@@ -14,7 +24,7 @@
 
 Этот полный ZIP → **Publisher1.1.2 → Лаунчер**. Новый Publisher не нужен: native-bundle и build-tools восстанавливают новый bridge/ZIP-manager поверх старого встроенного шаблона. Не импортировать только dist. Не удалять native-bundle/build-tools и не обходить checksum failures. После импорта обязательны restore-native, typecheck/tests/build; Windows EXE выпускается твоим обычным GitHub workflow, не этим Linux sandbox. Published tags не перезаписывать. Source version1.9.10, APP_VERSION следует версии, выбранной Publisher.
 
-Локально Node22.12+, `npm ci`, `npm run build`, затем `npm test`. Vite автоматически вызывает restoreNative из vite.config.js до сборки и запускает post-restore TypeScript/все232тестов. Прямой вызов модуля `node build-tools/restore-native.mjs` не является CLI-командой восстановления. Полный Windows-лаунчер здесь не собирался/не скачивался, как было запрошено. Текущий sourceZIP проверяется настоящим импортом ProjectFiles/ApplySupport1.1.2 и post-restore tests.
+Локально Node22.12+, `npm ci`, `npm run build`, затем `npm test`. Vite автоматически вызывает restoreNative из vite.config.js до сборки и запускает post-restore TypeScript/все242теста. Прямой вызов модуля `node build-tools/restore-native.mjs` не является CLI-командой восстановления. Полный Windows-лаунчер здесь не собирался/не скачивался, как было запрошено. Текущий sourceZIP проверяется настоящим импортом ProjectFiles/ApplySupport1.1.2 и post-restore tests.
 
 ## Ключи и основной сервер
 

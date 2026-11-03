@@ -150,3 +150,13 @@ test('custom cursor never hides the OS pointer underneath a native modal',()=>{
 });
 
 test('mandatory native smoke includes real Electron opaque-ASAR and preferred-root fixture',()=>{const smoke=protectedSmoke();assert(smoke.includes("execFileSync(process.execPath,[path.resolve(__dirname,'smoke-game-io.cjs')]"));const io=sourceText('scripts/smoke-game-io.cjs');for(const s of ["req('original-fs')","root:selected","wrongCreated","m.install(o)","m.launch(o)","synthetic"])assert(io.includes(s),s);assert(sourceText('src/lib/settings.tsx').includes('downloadPath: ""'));assert(!sourceText('src/components/SettingsView.tsx').includes('Игры ещё не доступны'));});
+
+
+test('real Electron game fixture isolates launcher tray and completes cleanup before explicit exit',()=>{
+ const io=sourceText('native-bundle/scripts/smoke-game-io.cjs'),host=sourceText('native-bundle/scripts/fixtures/game-io-main.cjs'),lifecycle=sourceText('native-bundle/scripts/smoke-lifecycle.cjs');
+ assert(io.includes("path.join(__dirname,'fixtures/game-io-main.cjs')"));
+ assert(io.includes('await stopElectron(app)'));assert(io.includes('safeToClean?await cleanupFixture(temp):false'));assert(io.includes('if(failure)throw failure'));assert(io.includes('finish(1)'));assert(io.includes('process.exit(code)'));
+ assert(!io.includes('fs.rmSync(temp'));assert(!io.includes("app.process().kill('SIGKILL')"));
+ assert(host.includes("win.loadURL('about:blank')"));assert(!host.includes('Tray'));assert(!host.includes('main.cjs'));
+ assert(lifecycle.includes("['/PID',String(child.pid),'/T','/F']"));assert(lifecycle.includes('await waitForExit(child,exitTimeout)'));assert(protectedSmoke().includes('timeout:120000'));
+});

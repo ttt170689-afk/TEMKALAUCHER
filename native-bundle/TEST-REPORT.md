@@ -1,3 +1,15 @@
+# Current verification — Windows CI fixture lifecycle fix
+
+Confirmed remote failure: Actions41497488590/#26/v1.9.10 Windows125456141753 at Smoke test step9. User supplied ETIMEDOUT at smoke-electron.cjs:10, child smoke-game-io.cjs, 45000ms; preceding unlink of temporary profile Cache/No_Vary_Search/journal.baj. Linux job success; installer/publish skipped. Not a user game directory/key failure. Public logs require login; source is user-provided excerpt, not a claim to have read the entire job log.
+
+Only test harness/CI bundle/docs changed in this revision. Minimal isolated actual Electron host instead of full launcher/tray. Bounded graceful close -> owned Windows PID tree termination if needed -> actual child exit -> async retried cleanup; known cache-lock failures warn, other errors propagate. Explicit terminal exit retains original assertion error; no silent passing, skipped ASAR checks, global noAsar, production kill behaviour or user-directory cleanup. Native supervisor120sec remains mandatory. Added hard assertions of synthetic ASAR hash/normal-fs Invalid package. game-io.json diagnostics written even on fixture assertion failure.
+
+Executed:242Node tests PASS, TypeScript/Vite build PASS; standalone real Electron44.7 Linux integration PASS shutdown.forced=false/cleaned=true, full Xvfb native smoke PASS. Actual Electron + injected EBUSY cache lock EXIT0/~1sec; same lock + deliberately injected integrity assertion EXIT1/~1sec, original error retained. Nine new lifecycle unit tests simulate Windows kill-tree commands, process-exit waiting, timeout/kill failure refusal, already-exited PID safety, retry options, locked cache warning/unrelated error propagation, deletion scope. Additional protected CI regression covers isolated host and explicit exit. Real Windows OS termination and new Actions success have NOT been verified locally. Final source uses76protected targets. Final ZIP is tested through real Publisher1.1.2 ProjectFiles.ExtractProject/ApplySupport then restore/build/tests before delivery.
+
+No Windows launcher installer or full153MB game download/execution; no publishing/tag mutation from this workspace. User must publish fresh ZIP and see Windows CI success before installed launcher receives E-root/ASAR fixes. APK/mobile/site/backend untouched.
+
+## Historical verification notes (earlier ZIPs: counts232/73 below are historical)
+
 # ASAR filesystem + saved game folder correction after physical Windows failure
 
 User's Windows installation failed at .../.fantazia-install-UUID/game/resources/app.asar with Invalid package. Settings showed E:\temkagames but native status/installer still used default OneDriveDocuments/TemkaGames. BOTH were defects in our integration, not a wrong folder choice/key/game server or antivirus conclusion.

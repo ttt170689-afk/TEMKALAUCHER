@@ -7,7 +7,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
 
 (async () => {
   // Mandatory real-Electron fixture: Node-only ZIP tests cannot detect ASAR virtualization.
-  require('node:child_process').execFileSync(process.execPath,[path.resolve(__dirname,'smoke-game-io.cjs')],{stdio:'inherit',timeout:45000});
+  require('node:child_process').execFileSync(process.execPath,[path.resolve(__dirname,'smoke-game-io.cjs')],{stdio:'inherit',timeout:120000});
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'temka-smoke-'));
   const diagnostics = path.resolve(__dirname, '..', 'test-results', 'electron-smoke');
   // Fail closed even during startup, before Playwright can install the session
