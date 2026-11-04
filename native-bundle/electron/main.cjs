@@ -45,7 +45,7 @@ handle('launch-updater', () => { showWindow(); win.webContents.send('temka-check
 const folderPicker = createFolderPicker({dialog,getWindow:()=>win,getDefaultPath:()=>app.getPath('documents')});
 handle('folder:choose', async currentPath => {const result=await folderPicker.choose(currentPath);if(result.ok&&!result.canceled&&result.path)await betaGame.setRoot(result.path);return result;});
 handle('clipboard:write-text', createClipboardWriter(clipboard));
-const betaGame=createBetaGame({getDataPath:()=>app.getPath('userData'),getDefaultRoot:()=>path.join(app.getPath('documents'),'TemkaGames'),fetchImpl:(url,options)=>net.fetch(url,options),emit:state=>{if(win&&!win.isDestroyed())win.webContents.send('beta-game:progress',state);}});
+const betaGame=createBetaGame({getDataPath:()=>app.getPath('userData'),getAppDataPath:()=>app.getPath('appData'),getDefaultRoot:()=>path.join(app.getPath('documents'),'TemkaGames'),fetchImpl:(url,options)=>net.fetch(url,options),emit:state=>{if(win&&!win.isDestroyed())win.webContents.send('beta-game:progress',state);}});
 handle('beta-game:status',o=>betaGame.status(o));
 handle('beta-game:install',o=>betaGame.install(o));
 handle('beta-game:launch',o=>betaGame.launch(o));

@@ -18,3 +18,7 @@ test('valid OTP response creates project-bound online session (mocked)',async()=
 test('new anonymous client cannot use beta RPC before verifying email',async()=>{const c=cloud(),client=new c.library.CloudClient('local-fixture');await assert.rejects(()=>client.betaStatus('fantazia'),/подтверди почту/);assert.equal(c.calls.length,0);});
 
 function loadCloud(extra){return load('online',{...extra,require:n=>n==='./onlineTransport'?{onlineFetch:extra.fetch}:extra.require(n)});}
+
+
+test('application sends no code and pending cannot become approved in client',async()=>{const c=cloud(),client=new c.library.CloudClient('local-fixture');const id='e8ef8742-b09c-47e0-8927-3fe27c0c9b3b';c.setResponse({access_token:'test-token',refresh_token:'test-refresh',expires_in:3600,user:{id}});await client.verifyCode('test@example.invalid','123456');c.setResponse({ok:true,status:{game_id:'fantazia',state:'pending',request_id:id,updated_at:'2026-11-03T00:00:00Z'}});const status=await client.requestBeta('fantazia');assert.equal(status.state,'pending');const request=c.calls.at(-1);assert.equal(request.url,defaults.url+'/rest/v1/rpc/beta_request');assert.deepEqual(JSON.parse(request.init.body),{p_game:'fantazia'});});
+test('unreleased TemkaWorld cannot send an application or auto-create access',async()=>{const c=cloud(),client=new c.library.CloudClient('local-fixture');await assert.rejects(client.requestBeta('temkaworld'));assert.equal(c.calls.length,0);});

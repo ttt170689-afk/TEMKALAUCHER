@@ -58,7 +58,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
         const endpoint=url.slice(onlineBase.length);let body={};try{body=request.postDataJSON()||{};}catch{}
         const respond=data=>{mockedEndpoints.add(endpoint);return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});};
         if(endpoint==='/rest/v1/rpc/beta_status')return respond({game_id:body.p_game,state:body.p_game==='fantazia'?gameBetaState:'none',request_id:body.p_game==='fantazia'&&gameBetaState!=='none'?mockUser.id:null,updated_at:body.p_game==='fantazia'&&gameBetaState!=='none'?'2026-11-02T00:00:00Z':null});
-        if(endpoint==='/rest/v1/rpc/beta_redeem'){assert.equal(body.p_game,'fantazia');assert.equal(body.p_code,'TEMKA-ABCDEF1234567890');gameBetaRedeems++;gameBetaState='approved';return respond({ok:true,status:{game_id:'fantazia',state:gameBetaState,request_id:mockUser.id,updated_at:'2026-11-02T00:00:00Z'}});}
+        if(endpoint==='/rest/v1/rpc/beta_request'){assert.equal(body.p_game,'fantazia');gameBetaRedeems++;gameBetaState='pending';return respond({ok:true,status:{game_id:'fantazia',state:gameBetaState,request_id:mockUser.id,updated_at:'2026-11-02T00:00:00Z'}});}
         if(endpoint==='/rest/v1/rpc/get_player_activity')return respond({playing:null,history:[]});
         if(endpoint==='/rest/v1/rpc/dm_threads')return respond([dmPeer()]);
         if(endpoint==='/rest/v1/rpc/dm_messages')return respond(directMessages.slice(-50));
@@ -175,7 +175,8 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     const properties=page.getByRole('dialog',{name:'TemkaWorld',exact:true});
     await properties.getByRole('tab',{name:'Бета-тест',exact:true}).click();
     await properties.getByText('Нужен подтверждённый онлайн-аккаунт',{exact:true}).waitFor();
-    assert.equal(await properties.getByRole('button',{name:'Отправить код',exact:true}).isDisabled(),true);
+    await properties.getByText('Заявки для этой игры пока не принимаются.',{exact:true}).waitFor();
+    assert.equal(await properties.locator('input').count(),0);
     assert.equal(await properties.getByRole('tab',{name:'Управление',exact:true}).count(),0);
     await properties.getByRole('button',{name:'Закрыть свойства',exact:true}).click();
     phase('wide navigation');
@@ -387,7 +388,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
     await nav.getByRole('button',{name:'Библиотека',exact:true}).click();
     await page.getByRole('button',{name:'Выбрать игру Fantazia RP',exact:true}).click();
     await page.locator('[data-selected-game="fantazia"]').waitFor();
-    phase('closed Beta0.1 requires a key, native status and fresh consent; revocation blocks download');
+    phase('closed Beta0.1 requires an approved application, native status and fresh consent; revocation blocks download');
     // Exercise the production native gate through Electron net.fetch on EVERY CI OS.
     // Only platform selection is injected: no Windows EXE, real download or live server is used.
     const nativeBetaStatus=()=>app.evaluate(async({net},data)=>{
@@ -402,10 +403,12 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
       await page.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();
       const props=page.getByRole('dialog').filter({has:page.locator('#gp-title')});
       await props.getByRole('tab',{name:'Бета-тест',exact:true}).click();
-      await props.getByLabel('Бета-код',{exact:true}).waitFor();
+      await props.getByRole('button',{name:'Отправить заявку',exact:true}).waitFor();
       assert.equal(await page.getByRole('dialog',{name:'Fantazia RP3D · Beta0.1',exact:true}).count(),0,'No key must not open an installer');
-      await props.getByLabel('Бета-код',{exact:true}).fill('TEMKA-ABCDEF1234567890');
-      await props.getByRole('button',{name:'Отправить код',exact:true}).click();
+      await props.getByRole('button',{name:'Отправить заявку',exact:true}).click();
+      await props.getByText('Ожидает одобрения автора',{exact:true}).waitFor();
+      assert.equal(await props.getByRole('button',{name:'Бета · установить / играть',exact:true}).count(),0,'Pending request must not unlock download');
+      gameBetaState='approved';await props.getByRole('button',{name:'Проверить статус',exact:true}).click();
       await props.getByText('Доступ к бета-тесту одобрен',{exact:true}).waitFor();assert.equal(gameBetaRedeems,1);
       await props.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();
       const beta=page.getByRole('dialog',{name:'Fantazia RP3D · Beta0.1',exact:true});
@@ -419,7 +422,7 @@ const { installSmokeNetwork } = require('./smoke-network.cjs');
       await page.waitForFunction(()=>!document.querySelector('.public-beta-primary')?.disabled);
       assert.equal(await primary.isEnabled(),true);
       gameBetaState='revoked';await primary.click();
-      await beta.getByRole('alert').filter({hasText:'Нужен доступ Fantazia по ключу'}).waitFor();
+      await beta.getByRole('alert').filter({hasText:'Нужен одобренный доступ Fantazia'}).waitFor();
       assert.equal(externalRequests.some(url=>url.startsWith('https://drive.usercontent.google.com/')),false,'Revoked access must not request the game ZIP');
       gameBetaState='approved';await beta.getByRole('button',{name:'Закрыть',exact:true}).click();
       await props.getByRole('button',{name:'Бета · установить / играть',exact:true}).click();await beta.waitFor();

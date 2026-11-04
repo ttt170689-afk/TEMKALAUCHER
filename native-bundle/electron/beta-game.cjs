@@ -1,9 +1,10 @@
 'use strict';
 const fs=require('./game-fs.cjs'),path=require('node:path'),crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const {pipeline}=require('node:stream/promises'),{Readable,Transform}=require('node:stream');
+const {GAME_SERVER,prepareGameServer}=require('./game-server.cjs');
 const {requireBeta}=require('./beta-access.cjs'),{extract,fileHash,safeName}=require('./game-zip.cjs');
-const PACKAGE=Object.freeze({bytes:153178080,sha256:'111591e160f6005e3aa3cb49e43ddfdcbfaaec1b1be7168e108f4c920891eac5',inner:'Fantazia-RP-Portable-1.0.1-win-x64.zip',innerBytes:153173775,innerHash:'b769cd37505bc37403040bb65887d46dac9217eec1093c23445b8e4494fe9abb',exe:'Fantazia RP 3D.exe',url:'https://drive.usercontent.google.com/download?id=1hH7PxjQEu4bSDQDdi6r0gVEpDZ0glFZL&export=download&confirm=t',server:'https://fantazia-rp-3d1.onrender.com/'});
-function createBetaGame({getDataPath,getDefaultRoot,fetchImpl=global.fetch,spawnImpl=spawn,platform=process.platform,emit=()=>{},descriptor=PACKAGE,minimumFreeBytes=1024*1024*1024,checkAccess=token=>requireBeta(token,fetchImpl)}){
+const PACKAGE=Object.freeze({bytes:153178080,sha256:'111591e160f6005e3aa3cb49e43ddfdcbfaaec1b1be7168e108f4c920891eac5',inner:'Fantazia-RP-Portable-1.0.1-win-x64.zip',innerBytes:153173775,innerHash:'b769cd37505bc37403040bb65887d46dac9217eec1093c23445b8e4494fe9abb',exe:'Fantazia RP 3D.exe',url:'https://drive.usercontent.google.com/download?id=1hH7PxjQEu4bSDQDdi6r0gVEpDZ0glFZL&export=download&confirm=t',server:GAME_SERVER});
+function createBetaGame({getDataPath,getDefaultRoot,getAppDataPath,fetchImpl=global.fetch,spawnImpl=spawn,platform=process.platform,emit=()=>{},descriptor=PACKAGE,minimumFreeBytes=1024*1024*1024,checkAccess=token=>requireBeta(token,fetchImpl)}){
  let phase='notInstalled',progress=0,job=null,child=null,launching=false,activeFolder='';
  const ledger=()=>path.join(getDataPath(),'fantazia-install-v1.json');
  const rootFile=()=>path.join(getDataPath(),'game-root-v1.json');
@@ -52,7 +53,8 @@ function createBetaGame({getDataPath,getDefaultRoot,fetchImpl=global.fetch,spawn
   })();try{return await job;}finally{job=null;}
  }
  async function launch(o){input(o,true);await checkAccess(o.token);if(job)throw Error('Дождись установки игры.');if(launching)throw Error('Запуск уже выполняется.');if(child)return {phase:'running'};launching=true;try{const base=await selectedRoot(o),r=await record(true,base);if(!r)throw Error('Проверенная игра не найдена или файлы изменились. Повторная установка не выполняется автоматически.');await checkAccess(o.token);
-  return await new Promise((resolve,reject)=>{const proc=spawnImpl(path.join(r.dir,descriptor.exe),[],{cwd:r.dir,shell:false,windowsHide:false,stdio:'ignore'});proc.once('error',()=>{if(child===proc)child=null;reject(Error('Windows не смог запустить игру. Проверь защитное уведомление и файлы, не отключая защиту.'));});proc.once('spawn',()=>{child=proc;phase='running';send();proc.unref?.();resolve({phase:'running',server:descriptor.server});});proc.once('exit',()=>{if(child===proc){child=null;phase='installed';send();}});});}finally{launching=false;}
+  const connection=getAppDataPath?await prepareGameServer(getAppDataPath()):{args:[]};
+  return await new Promise((resolve,reject)=>{const proc=spawnImpl(path.join(r.dir,descriptor.exe),connection.args,{cwd:r.dir,shell:false,windowsHide:false,stdio:'ignore'});proc.once('error',()=>{if(child===proc)child=null;reject(Error('Windows не смог запустить игру. Проверь защитное уведомление и файлы, не отключая защиту.'));});proc.once('spawn',()=>{child=proc;phase='running';send();proc.unref?.();resolve({phase:'running',server:descriptor.server});});proc.once('exit',()=>{if(child===proc){child=null;phase='installed';send();}});});}finally{launching=false;}
  }
  return {status,install,launch,setRoot,isBusy:()=>!!job||launching};
 }

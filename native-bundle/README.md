@@ -1,3 +1,21 @@
+## Текущий выпуск: заявки вместо ключей, закрытый сервер — отдельный rollout
+
+Fantazia: «Отправить заявку» → pending → автор одобряет в существующем Publisher1.1.2/BetaTest/Заявки → скачать/установить → отдельное «Играть». Новый RPC beta_request не принимает код и не сбрасывает revoked/rejected/approved; в MAIN уже добавлен, старые Fantazia-ключи больше не активируют доступ. Existing approvals/MAIN users/friends preserved. Управления бета-тестом в лаунчере нет. Подтверждение ранней беты с новым ручным checkbox остаётся.
+
+Обязателен СНАЧАЛА rollout серверного патча Fantazia-Private-Beta-Server-PATCH.zip на Render и private runtime env, затем этот PC ZIP через Publisher. Один PC ZIP сам по себе НЕ закрывает действующий Render. Нельзя объявлять live-сервер защищённым до внешней проверки anonymous HTTP/assets/players/WebSocket. Auth/персистентность сервера подготовлены отдельно в fantazia-private-beta,_MAIN DB schema уже добавлена, без удаления auth.users/профилей/друзей/старых approvals. Пользователь разрешил начать игровые профили заново; не обещать восстановление старого прогресса.
+
+252Node + TS/build + fullLinuxElectron smoke + Windows-only UI browser branch PASS. Сценарий проверяет request→PENDING(нетdownload)→synthetic owner approval→свежийconsent→revoked blocksnative download. Истинный Windows runtime/новыйCI надо проверить через следующий Publisherвыпуск, теги не перезаписывать. Mobile source UI синхронизирован/142tests/buildPASS, НОВЫЙ APK в этой операции ещё не собран: прежний APK0.5.3 остаётся прежним, не выдавать его за новый интерфейс заявок.
+
+--- История ---
+
+## Адрес Fantazia RP в игре — автоматически при «Играть»
+
+Основной игровой сервер https://fantazia-rp-3d1.onrender.com/. Windows launch после проверки ключа/согласия/установленных файлов подготавливает внешний server.json оригинального клиента (version1/url). Новый или единственный найденный штатный профиль передаётся штатным Electron --user-data-dir. Существующие файлы server.json не переписываются, cookies/аккаунты не переносятся/не удаляются; при нескольких штатных старых профилях не меняется выбор профиля игрой. ASAR/EXE/пины исходной игры не менялись, повторно скачивать игру не нужно. После обновления лаунчера закрыть уже открытое окно игры и снова «Играть», чтобы экран подключения прочитал настройку. В диалоге лаунчера также виден адрес. Автоматический вход/пароль/админская роль не добавлялись.
+
+250тестов/78protected targets, полный nativeElectronLinux smoke PASS. Отдельно загрузили оригинальный createDesktop из сохранённого реального game-app.asar в ElectronLinux test-host: настоящее поле #server содержит нужный HTTPS без ввода/Connect/login, app.getPath(userData) совпадает с подготовленным профилем. Это не Windows EXE/gameplay test. Существующие профили/свой адрес сохраняются байт-в-байт. Последний известный пользовательский Actions41698174235/v1.9.11 success подтверждает предыдущую CI-поправку, не публикацию этой новой функции. Новый ZIP требует следующего свободного выпуска через Publisher.
+
+---
+
 ## Исправление публикации Windows: ETIMEDOUT / journal.baj
 
 Сборка GitHub #26 (v1.9.10, commit fe0cf6bc73698f305f0e9f1aa4030708f7ee3cdc) остановилась до упаковки на обязательном smoke-game-io: временный Chromium-профиль оставался занят, а дочерний Node не завершился до execFileSync timeout45000. Это ошибка тестового lifecycle, не выбранной E-папки и не ключа. Linux-job тогда прошёл, Windows installer/publish были skipped. Node20 deprecation warning не причина.

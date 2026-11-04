@@ -148,6 +148,7 @@ export class CloudClient {
     return result;
   }
   async betaStatus(game:string) {if(!isGame(game))throw Error('Неизвестная игра.');return readBetaStatus(await this.request('/rest/v1/rpc/beta_status',{method:'POST',body:JSON.stringify({p_game:game})}),game);}
+  async requestBeta(game:string) {if(game!=='fantazia')throw Error('Заявки этой игры пока закрыты.');return readBetaResult(await this.request('/rest/v1/rpc/beta_request',{method:'POST',body:JSON.stringify({p_game:game})}),game);}
   async redeemBeta(game:string,code:string) {if(!isGame(game))throw Error('Неизвестная игра.');return readBetaResult(await this.request('/rest/v1/rpc/beta_redeem',{method:'POST',body:JSON.stringify({p_game:game,p_code:validateBetaCode(code)})}),game);}
   async messageThreads(){const me=this.session?.user.id;if(!me)throw Error('Сначала войди в онлайн-профиль.');return readThreads(await this.request('/rest/v1/rpc/dm_threads',{method:'POST',body:'{}'}),me);}
   async messages(peer:string,before?:DirectMessage){const me=this.session?.user.id;if(!me||!isUUID(peer)||peer===me)throw Error('Некорректный диалог.');return readMessages(await this.request('/rest/v1/rpc/dm_messages',{method:'POST',body:JSON.stringify({peer_id:peer,before_time:before?.created_at??null,before_id:before?.id??null})}),me,peer);}
